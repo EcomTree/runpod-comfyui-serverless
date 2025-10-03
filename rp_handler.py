@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+THIS SHOULD BE A LINTER ERROR#!/usr/bin/env python3
 
 import runpod
 import requests
@@ -12,6 +12,17 @@ import shutil
 import datetime
 import traceback
 from pathlib import Path
+
+# Constants
+WORKSPACE_PATH = Path("/workspace")
+RUNPOD_VOLUME_PATH = Path("/runpod-volume")
+COMFYUI_PATH = WORKSPACE_PATH / "ComfyUI"
+COMFYUI_MODELS_PATH = COMFYUI_PATH / "models"
+COMFYUI_OUTPUT_PATH = COMFYUI_PATH / "output"
+COMFYUI_LOGS_PATH = WORKSPACE_PATH / "logs"
+COMFYUI_HOST = "127.0.0.1"
+COMFYUI_PORT = "8188"
+COMFYUI_BASE_URL = f"http://{COMFYUI_HOST}:{COMFYUI_PORT}"
 
 # Global variable to track the ComfyUI process
 _comfyui_process = None
@@ -38,14 +49,13 @@ def _wait_for_path(path: Path, timeout: int = 20, poll_interval: float = 1.0) ->
 
 def _get_volume_base() -> Path:
     """Determine the base mount path for the Network Volume in Serverless/Pods."""
-    runpod_volume = Path("/runpod-volume")
     timeout = int(os.getenv("NETWORK_VOLUME_TIMEOUT", "15"))
 
-    if _wait_for_path(runpod_volume, timeout=timeout):
-        print("📦 Detected Serverless Network Volume at /runpod-volume")
-        return runpod_volume
-    print("📦 Using /workspace as volume base (no /runpod-volume detected)")
-    return Path("/workspace")
+    if _wait_for_path(RUNPOD_VOLUME_PATH, timeout=timeout):
+        print(f"📦 Detected Serverless Network Volume at {RUNPOD_VOLUME_PATH}")
+        return RUNPOD_VOLUME_PATH
+    print(f"📦 Using {WORKSPACE_PATH} as volume base (no {RUNPOD_VOLUME_PATH} detected)")
+    return WORKSPACE_PATH
 
 def _setup_volume_models():
     """Setup Volume Models with symlinks - the only solution that works in Serverless!"""
@@ -74,11 +84,11 @@ def _setup_volume_models():
             return False
         
         # ComfyUI Models Directory - where ComfyUI expects the models
-        comfy_models_dir = Path("/workspace/ComfyUI/models")
+        comfy_models_dir = COMFYUI_MODELS_PATH
         comfy_models_parent = comfy_models_dir.parent
         comfy_models_parent.mkdir(parents=True, exist_ok=True)
 
-        # Check for self-referential symlink: if volume base is /workspace and volume_models_dir
+        # Check for self-referential symlink: if volume base is WORKSPACE_PATH and volume_models_dir
         # would be the same as or contain comfy_models_dir, skip symlink creation
         try:
             volume_resolved = volume_models_dir.resolve()
@@ -89,9 +99,9 @@ def _setup_volume_models():
                 print(f"⚠️ Skipping symlink creation (would be self-referential)")
                 return True
             
-            # Also check if both are under /workspace (no real volume mounted)
-            if volume_base == Path("/workspace"):
-                print(f"⚠️ No network volume detected (using /workspace as fallback)")
+            # Also check if both are under WORKSPACE_PATH (no real volume mounted)
+            if volume_base == WORKSPACE_PATH:
+                print(f"⚠️ No network volume detected (using {WORKSPACE_PATH} as fallback)")
                 print(f"✅ Using local models directory: {comfy_models_dir}")
                 # Ensure the directory exists
                 comfy_models_dir.mkdir(parents=True, exist_ok=True)
@@ -178,7 +188,7 @@ def _setup_volume_models():
 def _is_comfyui_running():
     """Check if ComfyUI is already running."""
     try:
-        response = requests.get("http://127.0.0.1:8188/system_stats", timeout=2)
+        response = requests.get(f"{COMFYUI_BASE_URL}/system_stats", timeout=2)
         if response.status_code == 200:
             return True
     except requests.exceptions.RequestException:
@@ -190,7 +200,7 @@ def _wait_for_comfyui(max_retries=30, delay=2):
     """Wait until ComfyUI is ready."""
     for i in range(max_retries):
         try:
-            response = requests.get("http://127.0.0.1:8188/system_stats", timeout=5)
+            response = requests.get(f"{COMFYUI_BASE_URL}/system_stats", timeout=5)
             if response.status_code == 200:
                 print(f"✅ ComfyUI is running.")
                 return True
@@ -211,7 +221,7 @@ def _direct_model_refresh() -> bool:
     try:
         print("🔄 Alternative: Direct Model Scan...")
         refresh_response = requests.get(
-            "http://127.0.0.1:8188/object_info/CheckpointLoaderSimple",
+            f"{COMFYUI_BASE_URL}/object_info/CheckpointLoaderSimple",
             params={"refresh": "true"},
             timeout=10,
         )
@@ -226,7 +236,7 @@ def _force_model_refresh() -> bool:
     """Attempt model refresh via manager endpoint, fallback to direct scan."""
 
     print("🔄 Force Model Refresh after symlink creation...")
-    manager_root = "http://127.0.0.1:8188/manager"
+    manager_root = f"{COMFYUI_BASE_URL}/manager"
 
     try:
         discovery_response = requests.get(manager_root, timeout=5)
@@ -268,19 +278,19 @@ def _run_workflow(workflow):
     
     try:
         print(f"📤 Sending workflow to ComfyUI API...")
-        print(f"🔗 URL: http://127.0.0.1:8188/prompt")
+        print(f"🔗 URL: {COMFYUI_BASE_URL}/prompt")
         print(f"🆔 Client ID: {client_id}")
         print(f"📋 Workflow Node Count: {len(workflow)}")
         print(f"🔍 Workflow Nodes: {list(workflow.keys())}")
         
         # Test system stats
         print(f"🔄 Testing ComfyUI System Stats...")
-        stats_response = requests.get("http://127.0.0.1:8188/system_stats", timeout=10)
+        stats_response = requests.get(f"{COMFYUI_BASE_URL}/system_stats", timeout=10)
         print(f"✅ System Stats: {stats_response.status_code}")
         
         # Test available models
         print(f"🔄 Testing available models...")
-        models_response = requests.get("http://127.0.0.1:8188/object_info", timeout=10)
+        models_response = requests.get(f"{COMFYUI_BASE_URL}/object_info", timeout=10)
         if models_response.status_code == 200:
             object_info = models_response.json()
             checkpoints = object_info.get("CheckpointLoaderSimple", {}).get("input", {}).get("required", {}).get("ckpt_name", [])
@@ -292,7 +302,7 @@ def _run_workflow(workflow):
                 print("⚠️ No checkpoints found!")
         
         # Check output directory
-        output_dir = Path("/workspace/ComfyUI/output")
+        output_dir = COMFYUI_OUTPUT_PATH
         print(f"📁 Output Dir: {output_dir}, exists: {output_dir.exists()}, writable: {os.access(output_dir, os.W_OK) if output_dir.exists() else False}")
         
         # Count SaveImage nodes
@@ -302,7 +312,7 @@ def _run_workflow(workflow):
         print(f"🚀 Sending workflow with client_id...")
         
         response = requests.post(
-            "http://127.0.0.1:8188/prompt",
+            f"{COMFYUI_BASE_URL}/prompt",
             json={"prompt": workflow, "client_id": client_id},
             timeout=30
         )
@@ -332,7 +342,7 @@ def _run_workflow(workflow):
             elapsed = time.monotonic() - start_time
             
             try:
-                history_response = requests.get(f"http://127.0.0.1:8188/history/{prompt_id}", timeout=10)
+                history_response = requests.get(f"{COMFYUI_BASE_URL}/history/{prompt_id}", timeout=10)
                 if history_response.status_code == 200:
                     history = history_response.json()
                     if prompt_id in history:
@@ -419,9 +429,9 @@ def _start_comfyui_if_needed():
     
     print("🚀 Starting ComfyUI in background with optimal settings...")
     comfy_cmd = [
-        "python", "/workspace/ComfyUI/main.py",
-        "--listen", "127.0.0.1",
-        "--port", "8188",
+        "python", str(COMFYUI_PATH / "main.py"),
+        "--listen", COMFYUI_HOST,
+        "--port", COMFYUI_PORT,
         "--normalvram",
         "--preview-method", "auto",
         "--verbose",
@@ -430,10 +440,9 @@ def _start_comfyui_if_needed():
     print(f"🎯 ComfyUI Start Command: {' '.join(comfy_cmd)}")
     
     # Create log files for debugging
-    log_dir = Path("/workspace/logs")
-    log_dir.mkdir(exist_ok=True)
-    stdout_log = log_dir / "comfyui_stdout.log"
-    stderr_log = log_dir / "comfyui_stderr.log"
+    COMFYUI_LOGS_PATH.mkdir(exist_ok=True)
+    stdout_log = COMFYUI_LOGS_PATH / "comfyui_stdout.log"
+    stderr_log = COMFYUI_LOGS_PATH / "comfyui_stderr.log"
     
     # Open log files and start process
     try:
@@ -444,7 +453,7 @@ def _start_comfyui_if_needed():
             comfy_cmd,
             stdout=stdout_file,
             stderr=stderr_file,
-            cwd="/workspace/ComfyUI"
+            cwd=str(COMFYUI_PATH)
         )
         
         print(f"📋 ComfyUI process started (PID: {_comfyui_process.pid})")
@@ -477,7 +486,9 @@ def handler(event):
     
     try:
         # Volume Models Setup - only on first run or if symlinks are missing
-        comfy_models_dir = Path("/workspace/ComfyUI/models")
+        comfy_models_dir = COMFYUI_MODELS_PATH
+        just_setup_models = False  # Track if we just set up the models
+        
         if not comfy_models_dir.is_symlink() or not comfy_models_dir.exists():
             print("📦 Setting up Volume Models...")
             volume_setup_success = _setup_volume_models()
@@ -488,6 +499,7 @@ def handler(event):
                 # Short pause to ensure symlinks are ready
                 time.sleep(2)
                 print("🔗 Symlinks stabilized - ComfyUI can now start")
+                just_setup_models = True  # We just set up the models
         else:
             print("✅ Volume Models symlink already exists, skipping setup")
             volume_setup_success = True
@@ -497,12 +509,11 @@ def handler(event):
             return {"error": "ComfyUI could not be started"}
         
         # Model refresh only needed after initial setup
-        if volume_setup_success and _parse_bool_env("COMFYUI_REFRESH_MODELS", "true"):
-            # Only refresh if we just set up the volume models
-            if not comfy_models_dir.is_symlink():
-                print("⏳ Waiting for ComfyUI model scanning to initialize...")
-                time.sleep(5)
-                _force_model_refresh()
+        if just_setup_models and _parse_bool_env("COMFYUI_REFRESH_MODELS", "true"):
+            # Refresh models after we just set up the volume symlink
+            print("⏳ Waiting for ComfyUI model scanning to initialize...")
+            time.sleep(5)
+            _force_model_refresh()
         
         # Extract workflow from input
         workflow = event.get("input", {}).get("workflow")
@@ -525,7 +536,7 @@ def handler(event):
                 for img_info in node_output["images"]:
                     filename = img_info.get("filename")
                     if filename:
-                        full_path = Path("/workspace/ComfyUI/output") / filename
+                        full_path = COMFYUI_OUTPUT_PATH / filename
                         if full_path.exists():
                             image_paths.append(full_path)
                             print(f"🖼️ Image found: {full_path}")
@@ -533,7 +544,7 @@ def handler(event):
         # Fallback: Search output directory for new images created after workflow start
         if not image_paths:
             print("🔍 Fallback: Searching output directory for images created after workflow start...")
-            output_dir = Path("/workspace/ComfyUI/output")
+            output_dir = COMFYUI_OUTPUT_PATH
             if output_dir.exists():
                 # Use workflow_start_time for more accurate filtering
                 cutoff_time = workflow_start_time

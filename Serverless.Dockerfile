@@ -17,9 +17,10 @@ RUN apt-get update && \
 # ------------------------------------------------------------
 # Python Dependencies
 # ------------------------------------------------------------
+COPY requirements.txt /workspace/requirements.txt
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir runpod requests pyyaml && \
-    pip install --no-cache-dir scipy opencv-python Pillow numpy
+    pip install --no-cache-dir -r /workspace/requirements.txt && \
+    pip install --no-cache-dir pyyaml scipy opencv-python
 
 # ------------------------------------------------------------
 # ComfyUI Checkout (headless)
