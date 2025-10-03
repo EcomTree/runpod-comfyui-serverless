@@ -389,7 +389,7 @@ def _copy_to_volume_output(file_path: Path) -> str:
         volume_output_dir.mkdir(parents=True, exist_ok=True)
         
         # Unique filename with timestamp and UUID for better collision resistance
-        now = datetime.datetime.now(datetime.timezone.utc)
+        now = datetime.datetime.now(tz=datetime.timezone.utc)
         timestamp_str = now.strftime("%Y%m%d_%H%M%S_%f")
         unique_id = str(uuid.uuid4())[:8]
         dest_filename = f"comfyui-{timestamp_str}-{unique_id}-{file_path.name}"
