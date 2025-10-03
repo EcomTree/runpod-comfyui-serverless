@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+THIS SHOULD BE A LINTER ERROR#!/usr/bin/env python3
 
 import runpod
 import requests
@@ -12,6 +12,9 @@ import shutil
 import datetime
 import traceback
 from pathlib import Path
+
+# Global variable to track the ComfyUI process
+_comfyui_process = None
 
 
 def _parse_bool_env(key: str, default: str = "false") -> bool:
@@ -151,6 +154,17 @@ def _setup_volume_models():
         print(f"📋 Traceback: {traceback.format_exc()}")
         return False
 
+def _is_comfyui_running():
+    """Check if ComfyUI is already running."""
+    try:
+        response = requests.get("http://127.0.0.1:8188/system_stats", timeout=2)
+        if response.status_code == 200:
+            return True
+    except requests.exceptions.RequestException:
+        pass
+    return False
+
+
 def _wait_for_comfyui(max_retries=30, delay=2):
     """Wait until ComfyUI is ready."""
     for i in range(max_retries):
@@ -229,6 +243,7 @@ def _force_model_refresh() -> bool:
 def _run_workflow(workflow):
     """Execute ComfyUI workflow."""
     client_id = str(uuid.uuid4())
+    workflow_start_time = time.time()  # Track when workflow execution starts
     
     try:
         print(f"📤 Sending workflow to ComfyUI API...")
@@ -305,6 +320,8 @@ def _run_workflow(workflow):
                         
                         if status.get("status_str") == "success":
                             print(f"✅ Workflow completed successfully!")
+                            # Add workflow_start_time to the result for image filtering
+                            prompt_history["_workflow_start_time"] = workflow_start_time
                             return prompt_history
                         elif status.get("status_str") == "error":
                             print(f"❌ Workflow Error: {status}")
@@ -362,6 +379,69 @@ def _copy_to_volume_output(file_path: Path) -> str:
         print(f"📋 Traceback: {traceback.format_exc()}")
         return f"Error copying {file_path.name}: {e}"
 
+def _start_comfyui_if_needed():
+    """Start ComfyUI if it's not already running."""
+    global _comfyui_process
+    
+    # Check if ComfyUI is already running
+    if _is_comfyui_running():
+        print("✅ ComfyUI is already running, skipping startup")
+        # Check if we have a process reference and it's still alive
+        if _comfyui_process and _comfyui_process.poll() is None:
+            print(f"📋 Using existing ComfyUI process (PID: {_comfyui_process.pid})")
+        return True
+    
+    # If we have a stale process reference, clear it
+    if _comfyui_process and _comfyui_process.poll() is not None:
+        print("🔄 Clearing stale ComfyUI process reference")
+        _comfyui_process = None
+    
+    print("🚀 Starting ComfyUI in background with optimal settings...")
+    comfy_cmd = [
+        "python", "/workspace/ComfyUI/main.py",
+        "--listen", "127.0.0.1",
+        "--port", "8188",
+        "--normalvram",
+        "--preview-method", "auto",
+        "--verbose",
+        "--cache-lru", "3"  # Small LRU cache for better model detection after symlinks
+    ]
+    print(f"🎯 ComfyUI Start Command: {' '.join(comfy_cmd)}")
+    
+    # Create log files for debugging
+    log_dir = Path("/workspace/logs")
+    log_dir.mkdir(exist_ok=True)
+    stdout_log = log_dir / "comfyui_stdout.log"
+    stderr_log = log_dir / "comfyui_stderr.log"
+    
+    # Open log files and start process
+    try:
+        stdout_file = open(stdout_log, "a")
+        stderr_file = open(stderr_log, "a")
+        
+        _comfyui_process = subprocess.Popen(
+            comfy_cmd,
+            stdout=stdout_file,
+            stderr=stderr_file,
+            cwd="/workspace/ComfyUI"
+        )
+        
+        print(f"📋 ComfyUI process started (PID: {_comfyui_process.pid})")
+        print(f"📝 Logs: stdout={stdout_log}, stderr={stderr_log}")
+        
+        # Wait until ComfyUI is ready
+        if not _wait_for_comfyui():
+            print("❌ ComfyUI failed to start, check logs for details")
+            return False
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Failed to start ComfyUI: {e}")
+        print(f"📋 Traceback: {traceback.format_exc()}")
+        return False
+
+
 def handler(event):
     """
     Runpod handler for ComfyUI workflows.
@@ -375,47 +455,33 @@ def handler(event):
         return {"status": "ok"}
     
     try:
-        # Volume Models Setup - MUST happen before ComfyUI start!
-        print("📦 Setting up Volume Models...")
-        volume_setup_success = _setup_volume_models()
-        if not volume_setup_success:
-            print("⚠️ Volume Models Setup failed - ComfyUI will start without Volume Models")
+        # Volume Models Setup - only on first run or if symlinks are missing
+        comfy_models_dir = Path("/workspace/ComfyUI/models")
+        if not comfy_models_dir.is_symlink() or not comfy_models_dir.exists():
+            print("📦 Setting up Volume Models...")
+            volume_setup_success = _setup_volume_models()
+            if not volume_setup_success:
+                print("⚠️ Volume Models Setup failed - ComfyUI will start without Volume Models")
+            else:
+                print("✅ Volume Models Setup successful - ComfyUI will find models at startup!")
+                # Short pause to ensure symlinks are ready
+                time.sleep(2)
+                print("🔗 Symlinks stabilized - ComfyUI can now start")
         else:
-            print("✅ Volume Models Setup successful - ComfyUI will find models at startup!")
-            # Short pause to ensure symlinks are ready
-            time.sleep(2)
-            print("🔗 Symlinks stabilized - ComfyUI can now start")
+            print("✅ Volume Models symlink already exists, skipping setup")
+            volume_setup_success = True
         
-        # Start ComfyUI (AFTER Volume Setup!)
-        print("🚀 Starting ComfyUI in background with optimal settings...")
-        comfy_cmd = [
-            "python", "/workspace/ComfyUI/main.py",
-            "--listen", "127.0.0.1",
-            "--port", "8188",
-            "--normalvram",
-            "--preview-method", "auto",
-            "--verbose",
-            "--cache-lru", "3"  # Small LRU cache for better model detection after symlinks
-        ]
-        print(f"🎯 ComfyUI Start Command: {' '.join(comfy_cmd)}")
-        
-        # Use DEVNULL to prevent subprocess from blocking on unconsumed stdout
-        comfy_process = subprocess.Popen(
-            comfy_cmd,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            cwd="/workspace/ComfyUI"
-        )
-        
-        # Wait until ComfyUI is ready
-        if not _wait_for_comfyui():
+        # Start ComfyUI if not already running
+        if not _start_comfyui_if_needed():
             return {"error": "ComfyUI could not be started"}
         
-        # Add delay before model refresh to ensure ComfyUI model scanning is fully initialized
+        # Model refresh only needed after initial setup
         if volume_setup_success and _parse_bool_env("COMFYUI_REFRESH_MODELS", "true"):
-            print("⏳ Waiting for ComfyUI model scanning to initialize...")
-            time.sleep(5)
-            _force_model_refresh()
+            # Only refresh if we just set up the volume models
+            if not comfy_models_dir.is_symlink():
+                print("⏳ Waiting for ComfyUI model scanning to initialize...")
+                time.sleep(5)
+                _force_model_refresh()
         
         # Extract workflow from input
         workflow = event.get("input", {}).get("workflow")
@@ -430,6 +496,7 @@ def handler(event):
         # Find generated images
         image_paths = []
         outputs = result.get("outputs", {})
+        workflow_start_time = result.get("_workflow_start_time", time.time() - 60)
         
         # Search all output nodes for images
         for node_id, node_output in outputs.items():
@@ -442,16 +509,31 @@ def handler(event):
                             image_paths.append(full_path)
                             print(f"🖼️ Image found: {full_path}")
         
-        # Fallback: Search output directory for new images
+        # Fallback: Search output directory for new images created after workflow start
         if not image_paths:
-            print("🔍 Fallback: Searching output directory...")
+            print("🔍 Fallback: Searching output directory for images created after workflow start...")
             output_dir = Path("/workspace/ComfyUI/output")
             if output_dir.exists():
+                # Use workflow_start_time for more accurate filtering
+                cutoff_time = workflow_start_time
                 for img_path in output_dir.glob("*.png"):
-                    # Only images from the last 60 seconds
-                    if time.time() - img_path.stat().st_mtime < 60:
+                    # Only images modified after workflow started
+                    if img_path.stat().st_mtime >= cutoff_time:
                         image_paths.append(img_path)
-                        print(f"🖼️ New image found: {img_path}")
+                        print(f"🖼️ New image found: {img_path} (mtime: {img_path.stat().st_mtime}, cutoff: {cutoff_time})")
+                
+                if not image_paths:
+                    print(f"⚠️ No images found created after {cutoff_time} (workflow start time)")
+                    # List recent files for debugging
+                    recent_files = sorted(
+                        [f for f in output_dir.glob("*.png")],
+                        key=lambda p: p.stat().st_mtime,
+                        reverse=True
+                    )[:5]
+                    if recent_files:
+                        print(f"📋 Most recent images in output directory:")
+                        for f in recent_files:
+                            print(f"   - {f.name} (mtime: {f.stat().st_mtime})")
         
         if not image_paths:
             return {"error": "No generated images found"}
