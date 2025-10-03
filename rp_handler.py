@@ -535,37 +535,49 @@ def handler(event):
             if "images" in node_output:
                 for img_info in node_output["images"]:
                     filename = img_info.get("filename")
+                    subfolder = img_info.get("subfolder", "")
                     if filename:
-                        full_path = COMFYUI_OUTPUT_PATH / filename
+                        # Build path with subfolder if present
+                        if subfolder:
+                            full_path = COMFYUI_OUTPUT_PATH / subfolder / filename
+                        else:
+                            full_path = COMFYUI_OUTPUT_PATH / filename
+                        
                         if full_path.exists():
                             image_paths.append(full_path)
                             print(f"🖼️ Image found: {full_path}")
+                        else:
+                            print(f"⚠️ Image not found at expected path: {full_path}")
         
-        # Fallback: Search output directory for new images created after workflow start
+        # Fallback: Search output directory recursively for new images created after workflow start
         if not image_paths:
-            print("🔍 Fallback: Searching output directory for images created after workflow start...")
+            print("🔍 Fallback: Recursively searching output directory for images created after workflow start...")
             output_dir = COMFYUI_OUTPUT_PATH
             if output_dir.exists():
                 # Use workflow_start_time for more accurate filtering
                 cutoff_time = workflow_start_time
-                for img_path in output_dir.glob("*.png"):
+                # Use rglob for recursive search to find images in subfolders
+                for img_path in output_dir.rglob("*.png"):
                     # Only images modified after workflow started
                     if img_path.stat().st_mtime >= cutoff_time:
                         image_paths.append(img_path)
-                        print(f"🖼️ New image found: {img_path} (mtime: {img_path.stat().st_mtime}, cutoff: {cutoff_time})")
+                        # Show relative path for clarity
+                        rel_path = img_path.relative_to(output_dir)
+                        print(f"🖼️ New image found: {rel_path} (mtime: {img_path.stat().st_mtime}, cutoff: {cutoff_time})")
                 
                 if not image_paths:
                     print(f"⚠️ No images found created after {cutoff_time} (workflow start time)")
-                    # List recent files for debugging
+                    # List recent files for debugging (recursively)
                     recent_files = sorted(
-                        [f for f in output_dir.glob("*.png")],
+                        [f for f in output_dir.rglob("*.png")],
                         key=lambda p: p.stat().st_mtime,
                         reverse=True
                     )[:5]
                     if recent_files:
                         print(f"📋 Most recent images in output directory:")
                         for f in recent_files:
-                            print(f"   - {f.name} (mtime: {f.stat().st_mtime})")
+                            rel_path = f.relative_to(output_dir)
+                            print(f"   - {rel_path} (mtime: {f.stat().st_mtime})")
         
         if not image_paths:
             return {"error": "No generated images found"}
