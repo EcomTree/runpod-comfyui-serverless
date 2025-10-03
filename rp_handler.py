@@ -271,6 +271,30 @@ def _force_model_refresh() -> bool:
     return _direct_model_refresh()
 
 
+def _extract_checkpoint_names(object_info: dict) -> list:
+    """Safely extract checkpoint names from ComfyUI object_info response."""
+    try:
+        # Navigate through the nested structure
+        checkpoint_loader = object_info.get("CheckpointLoaderSimple", {})
+        input_spec = checkpoint_loader.get("input", {})
+        required_spec = input_spec.get("required", {})
+        ckpt_name = required_spec.get("ckpt_name", [])
+        
+        # Handle nested list format [[model_names], {}]
+        if isinstance(ckpt_name, list) and len(ckpt_name) > 0:
+            if isinstance(ckpt_name[0], list):
+                # Nested format: extract first list
+                return ckpt_name[0] if len(ckpt_name[0]) > 0 else []
+            else:
+                # Simple list format
+                return ckpt_name
+        
+        return []
+    except (AttributeError, TypeError, KeyError, IndexError) as e:
+        print(f"⚠️ Error extracting checkpoint names: {e}")
+        return []
+
+
 def _run_workflow(workflow):
     """Execute ComfyUI workflow."""
     client_id = str(uuid.uuid4())
@@ -293,12 +317,9 @@ def _run_workflow(workflow):
         models_response = requests.get(f"{COMFYUI_BASE_URL}/object_info", timeout=10)
         if models_response.status_code == 200:
             object_info = models_response.json()
-            checkpoints = object_info.get("CheckpointLoaderSimple", {}).get("input", {}).get("required", {}).get("ckpt_name", [])
-            # Handle case where ckpt_name returns a nested list format [[model_names], {}]
-            if isinstance(checkpoints, list) and len(checkpoints) > 0 and isinstance(checkpoints[0], list):
-                checkpoints = checkpoints[0]
+            checkpoints = _extract_checkpoint_names(object_info)
             print(f"📋 Available Checkpoints: {checkpoints}")
-            if not checkpoints or (isinstance(checkpoints, list) and len(checkpoints) == 0):
+            if not checkpoints:
                 print("⚠️ No checkpoints found!")
         
         # Check output directory
@@ -558,8 +579,9 @@ def handler(event):
                 cutoff_time = workflow_start_time
                 # Use rglob for recursive search to find images in subfolders
                 for img_path in output_dir.rglob("*.png"):
-                    # Only images modified after workflow started
-                    if img_path.stat().st_mtime >= cutoff_time:
+                    # Only images modified strictly after workflow started (> not >=)
+                    # to avoid including files from exactly the start time (previous workflows)
+                    if img_path.stat().st_mtime > cutoff_time:
                         image_paths.append(img_path)
                         # Show relative path for clarity
                         rel_path = img_path.relative_to(output_dir)
