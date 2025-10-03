@@ -21,8 +21,10 @@ COMFYUI_MODELS_PATH = COMFYUI_PATH / "models"
 COMFYUI_OUTPUT_PATH = COMFYUI_PATH / "output"
 COMFYUI_LOGS_PATH = WORKSPACE_PATH / "logs"
 COMFYUI_HOST = "127.0.0.1"
-COMFYUI_PORT = "8188"
+COMFYUI_PORT = 8188
 COMFYUI_BASE_URL = f"http://{COMFYUI_HOST}:{COMFYUI_PORT}"
+DEFAULT_WORKFLOW_DURATION_SECONDS = 60  # Default fallback for workflow start time
+SUPPORTED_IMAGE_EXTENSIONS = ["*.png", "*.jpg", "*.jpeg", "*.webp"]
 
 # Global variable to track the ComfyUI process
 _comfyui_process = None
@@ -415,7 +417,7 @@ def _copy_to_volume_output(file_path: Path) -> dict:
         volume_output_dir.mkdir(parents=True, exist_ok=True)
         
         # Unique filename with timestamp and UUID for better collision resistance
-        now = datetime.datetime.now(tz=datetime.timezone.utc)
+        now = datetime.datetime.now(datetime.timezone.utc)
         timestamp_str = now.strftime("%Y%m%d_%H%M%S_%f")
         unique_id = str(uuid.uuid4())[:8]
         dest_filename = f"comfyui-{timestamp_str}-{unique_id}-{file_path.name}"
@@ -465,7 +467,7 @@ def _start_comfyui_if_needed():
     comfy_cmd = [
         "python", str(COMFYUI_PATH / "main.py"),
         "--listen", COMFYUI_HOST,
-        "--port", COMFYUI_PORT,
+        "--port", str(COMFYUI_PORT),
         "--normalvram",
         "--preview-method", "auto",
         "--verbose",
@@ -562,7 +564,7 @@ def handler(event):
         # Find generated images
         image_paths = []
         outputs = result.get("outputs", {})
-        workflow_start_time = result.get("_workflow_start_time", time.time() - 60)
+        workflow_start_time = result.get("_workflow_start_time", time.time() - DEFAULT_WORKFLOW_DURATION_SECONDS)
         
         # Search all output nodes for images
         for node_id, node_output in outputs.items():
@@ -591,20 +593,25 @@ def handler(event):
                 # Use workflow_start_time for more accurate filtering
                 cutoff_time = workflow_start_time
                 # Use rglob for recursive search to find images in subfolders
-                for img_path in output_dir.rglob("*.png"):
-                    # Only images modified strictly after workflow started (> not >=)
-                    # to avoid including files from exactly the start time (previous workflows)
-                    if img_path.stat().st_mtime > cutoff_time:
-                        image_paths.append(img_path)
-                        # Show relative path for clarity
-                        rel_path = img_path.relative_to(output_dir)
-                        print(f"🖼️ New image found: {rel_path} (mtime: {img_path.stat().st_mtime}, cutoff: {cutoff_time})")
+                # Support multiple image formats
+                for ext in SUPPORTED_IMAGE_EXTENSIONS:
+                    for img_path in output_dir.rglob(ext):
+                        # Only images modified strictly after workflow started (> not >=)
+                        # to avoid including files from exactly the start time (previous workflows)
+                        if img_path.stat().st_mtime > cutoff_time:
+                            image_paths.append(img_path)
+                            # Show relative path for clarity
+                            rel_path = img_path.relative_to(output_dir)
+                            print(f"🖼️ New image found: {rel_path} (mtime: {img_path.stat().st_mtime}, cutoff: {cutoff_time})")
                 
                 if not image_paths:
                     print(f"⚠️ No images found created after {cutoff_time} (workflow start time)")
-                    # List recent files for debugging (recursively)
+                    # List recent files for debugging (recursively, all formats)
+                    recent_files = []
+                    for ext in SUPPORTED_IMAGE_EXTENSIONS:
+                        recent_files.extend(output_dir.rglob(ext))
                     recent_files = sorted(
-                        [f for f in output_dir.rglob("*.png")],
+                        recent_files,
                         key=lambda p: p.stat().st_mtime,
                         reverse=True
                     )[:5]
