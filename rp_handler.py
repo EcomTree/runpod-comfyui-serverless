@@ -43,13 +43,13 @@ def _get_volume_base() -> Path:
 
 def _setup_volume_models():
     """Setup Volume Models with symlinks - the only solution that works in Serverless!"""
-    print("📦 Setup Volume Models mit Symlinks...")
+    print("📦 Setting up Volume Models with symlinks...")
     
     try:
         volume_base = _get_volume_base()
         print(f"🔍 Volume Base: {volume_base}")
         
-        # Checke die häufigsten Volume Model Strukturen
+        # Check the most common Volume Model structures
         possible_volume_model_dirs = [
             volume_base / "ComfyUI" / "models",     # /runpod-volume/ComfyUI/models
             volume_base / "models",                  # /runpod-volume/models  
@@ -59,15 +59,15 @@ def _setup_volume_models():
         volume_models_dir = None
         for path in possible_volume_model_dirs:
             if path.exists():
-                print(f"✅ Volume Models Directory gefunden: {path}")
+                print(f"✅ Volume Models Directory found: {path}")
                 volume_models_dir = path
                 break
         
         if not volume_models_dir:
-            print(f"⚠️ Keine Volume Models gefunden in: {[str(p) for p in possible_volume_model_dirs]}")
+            print(f"⚠️ No Volume Models found in: {[str(p) for p in possible_volume_model_dirs]}")
             return False
         
-        # ComfyUI Models Directory - hier erwartet ComfyUI die Models
+        # ComfyUI Models Directory - where ComfyUI expects the models
         comfy_models_dir = Path("/workspace/ComfyUI/models")
         comfy_models_parent = comfy_models_dir.parent
         comfy_models_parent.mkdir(parents=True, exist_ok=True)
@@ -78,49 +78,49 @@ def _setup_volume_models():
             try:
                 current_target = comfy_models_dir.resolve()
                 if current_target == volume_models_dir.resolve():
-                    print("🔗 Symlink existiert bereits und zeigt auf das Volume.")
+                    print("🔗 Symlink already exists and points to the volume.")
                     symlink_needed = False
                 else:
-                    print(f"🗑️ Entferne bestehenden Symlink: {comfy_models_dir} → {current_target}")
+                    print(f"🗑️ Removing existing symlink: {comfy_models_dir} → {current_target}")
                     comfy_models_dir.unlink()
             except (FileNotFoundError, OSError) as resolve_error:
-                # Broken/malformed symlink - kann nicht resolved werden
-                print(f"🗑️ Entferne kaputten Symlink (resolve failed: {resolve_error})...")
+                # Broken/malformed symlink - cannot be resolved
+                print(f"🗑️ Removing broken symlink (resolve failed: {resolve_error})...")
                 comfy_models_dir.unlink()
         elif comfy_models_dir.exists():
-            print(f"🗑️ Entferne lokales models Verzeichnis: {comfy_models_dir}")
+            print(f"🗑️ Removing local models directory: {comfy_models_dir}")
             import shutil
             shutil.rmtree(comfy_models_dir)
         
-        # Erstelle Symlink nur wenn nötig
+        # Create symlink only if needed
         if symlink_needed:
-            print(f"🔗 Erstelle Symlink: {comfy_models_dir} → {volume_models_dir}")
+            print(f"🔗 Creating symlink: {comfy_models_dir} → {volume_models_dir}")
             try:
                 comfy_models_dir.symlink_to(volume_models_dir, target_is_directory=True)
             except FileExistsError:
-                # Edge case: Symlink wurde zwischenzeitlich von anderem Prozess erstellt
-                print(f"⚠️ Symlink existiert bereits (race condition)")
-                # Verifiziere dass er korrekt ist
+                # Edge case: Symlink was created by another process in the meantime
+                print(f"⚠️ Symlink already exists (race condition)")
+                # Verify that it is correct
                 if comfy_models_dir.is_symlink():
                     try:
                         current_target = comfy_models_dir.resolve()
                         if current_target == volume_models_dir.resolve():
-                            print("🔗 Symlink ist korrekt")
+                            print("🔗 Symlink is correct")
                         else:
-                            print(f"❌ Symlink zeigt auf falsches Ziel: {current_target}")
+                            print(f"❌ Symlink points to wrong target: {current_target}")
                             return False
                     except (FileNotFoundError, OSError):
-                        print("❌ Symlink ist kaputt")
+                        print("❌ Symlink is broken")
                         return False
                 else:
-                    print("❌ Pfad wird von Datei/Directory blockiert")
+                    print("❌ Path is blocked by file/directory")
                     return False
         
-        # Verifiziere den Symlink
+        # Verify the symlink
         if comfy_models_dir.is_symlink() and comfy_models_dir.exists():
-            print(f"✅ Symlink erfolgreich erstellt und verifiziert!")
+            print(f"✅ Symlink successfully created and verified!")
             
-            # Zeige verfügbare Model-Types
+            # Show available model types
             model_subdirs = ["checkpoints", "vae", "loras", "unet", "clip", "clip_vision", "text_encoders", "diffusion_models"]
             found_types = []
             
@@ -132,20 +132,20 @@ def _setup_volume_models():
                         print(f"   📂 {subdir}: {len(model_files)} Models")
                         found_types.append(subdir)
                     else:
-                        print(f"   📂 {subdir}: Verzeichnis vorhanden, aber leer")
+                        print(f"   📂 {subdir}: Directory exists, but empty")
             
             if found_types:
-                print(f"🎯 Models verfügbar in: {', '.join(found_types)}")
+                print(f"🎯 Models available in: {', '.join(found_types)}")
                 return True
             else:
-                print(f"⚠️ Symlink erstellt, aber keine Models gefunden!")
+                print(f"⚠️ Symlink created, but no models found!")
                 return False
         else:
-            print(f"❌ Symlink-Erstellung fehlgeschlagen!")
+            print(f"❌ Symlink creation failed!")
             return False
             
     except Exception as e:
-        print(f"❌ Volume Model Setup Fehler: {e}")
+        print(f"❌ Volume Model Setup Error: {e}")
         import traceback
         print(f"📋 Traceback: {traceback.format_exc()}")
         return False
@@ -156,16 +156,16 @@ def _wait_for_comfyui(max_retries=30, delay=2):
         try:
             response = requests.get("http://127.0.0.1:8188/system_stats", timeout=5)
             if response.status_code == 200:
-                print(f"✅ ComfyUI läuft.")
+                print(f"✅ ComfyUI is running.")
                 return True
         except requests.exceptions.RequestException:
             pass
         
         if i < max_retries - 1:
-            print(f"⏳ Warte auf ComfyUI... ({i+1}/{max_retries})")
+            print(f"⏳ Waiting for ComfyUI... ({i+1}/{max_retries})")
             time.sleep(delay)
     
-    print("❌ ComfyUI startet nicht!")
+    print("❌ ComfyUI failed to start!")
     return False
 
 
@@ -182,45 +182,45 @@ def _direct_model_refresh() -> bool:
         print(f"📋 Direct Refresh Response: {refresh_response.status_code}")
         return refresh_response.status_code == 200
     except requests.exceptions.RequestException as error:
-        print(f"⚠️ Direct refresh fehlgeschlagen: {error}")
+        print(f"⚠️ Direct refresh failed: {error}")
         return False
 
 
 def _force_model_refresh() -> bool:
     """Attempt model refresh via manager endpoint, fallback to direct scan."""
 
-    print("🔄 Force Model Refresh nach Symlink-Erstellung...")
+    print("🔄 Force Model Refresh after symlink creation...")
     manager_root = "http://127.0.0.1:8188/manager"
 
     try:
         discovery_response = requests.get(manager_root, timeout=5)
         print(f"📋 Manager Discovery Status: {discovery_response.status_code}")
     except requests.exceptions.RequestException as discovery_error:
-        print(f"⚠️ Manager Endpoint Discovery fehlgeschlagen: {discovery_error}")
+        print(f"⚠️ Manager Endpoint Discovery failed: {discovery_error}")
         return _direct_model_refresh()
 
     if discovery_response.status_code == 404:
-        print("⚠️ Manager Plugin nicht vorhanden (404)")
+        print("⚠️ Manager Plugin not available (404)")
         return _direct_model_refresh()
 
     if discovery_response.status_code >= 500:
-        print(f"⚠️ Manager Discovery Fehlercode {discovery_response.status_code}, nutze Fallback")
+        print(f"⚠️ Manager Discovery error code {discovery_response.status_code}, using fallback")
         return _direct_model_refresh()
 
     try:
         refresh_response = requests.post(f"{manager_root}/reboot", timeout=10)
         print(f"📋 Manager Refresh Status: {refresh_response.status_code}")
         if refresh_response.status_code == 200:
-            # Warte kurz auf Neustart
+            # Wait briefly for restart
             time.sleep(3)
             if not _wait_for_comfyui():
-                print("⚠️ ComfyUI restart nach Model Refresh fehlgeschlagen")
+                print("⚠️ ComfyUI restart after Model Refresh failed")
                 return False
-            print("✅ Model Refresh erfolgreich!")
+            print("✅ Model Refresh successful!")
             return True
-        print("⚠️ Manager Refresh nicht erfolgreich, versuche Direct Scan")
+        print("⚠️ Manager Refresh not successful, trying Direct Scan")
     except requests.exceptions.RequestException as refresh_error:
-        print(f"⚠️ Manager Refresh fehlgeschlagen: {refresh_error}")
+        print(f"⚠️ Manager Refresh failed: {refresh_error}")
 
     return _direct_model_refresh()
 
@@ -230,36 +230,36 @@ def _run_workflow(workflow):
     client_id = str(uuid.uuid4())
     
     try:
-        print(f"📤 Sende Workflow an ComfyUI API...")
+        print(f"📤 Sending workflow to ComfyUI API...")
         print(f"🔗 URL: http://127.0.0.1:8188/prompt")
         print(f"🆔 Client ID: {client_id}")
         print(f"📋 Workflow Node Count: {len(workflow)}")
         print(f"🔍 Workflow Nodes: {list(workflow.keys())}")
         
         # Test system stats
-        print(f"🔄 Teste ComfyUI System Stats...")
+        print(f"🔄 Testing ComfyUI System Stats...")
         stats_response = requests.get("http://127.0.0.1:8188/system_stats", timeout=10)
         print(f"✅ System Stats: {stats_response.status_code}")
         
         # Test available models
-        print(f"🔄 Teste verfügbare Models...")
+        print(f"🔄 Testing available models...")
         models_response = requests.get("http://127.0.0.1:8188/object_info", timeout=10)
         if models_response.status_code == 200:
             object_info = models_response.json()
             checkpoints = object_info.get("CheckpointLoaderSimple", {}).get("input", {}).get("ckpt_name", [])
-            print(f"📋 Verfügbare Checkpoints: {checkpoints}")
+            print(f"📋 Available Checkpoints: {checkpoints}")
             if not checkpoints:
-                print("⚠️ Keine Checkpoints gefunden!")
+                print("⚠️ No checkpoints found!")
         
         # Check output directory
         output_dir = Path("/workspace/ComfyUI/output")
-        print(f"📁 Output Dir: {output_dir}, existiert: {output_dir.exists()}, beschreibbar: {os.access(output_dir, os.W_OK) if output_dir.exists() else False}")
+        print(f"📁 Output Dir: {output_dir}, exists: {output_dir.exists()}, writable: {os.access(output_dir, os.W_OK) if output_dir.exists() else False}")
         
         # Count SaveImage nodes
         save_nodes = [k for k, v in workflow.items() if v.get("class_type") == "SaveImage"]
-        print(f"💾 SaveImage Nodes gefunden: {len(save_nodes)}")
+        print(f"💾 SaveImage Nodes found: {len(save_nodes)}")
         
-        print(f"🚀 Sende Workflow mit client_id...")
+        print(f"🚀 Sending workflow with client_id...")
         
         response = requests.post(
             "http://127.0.0.1:8188/prompt",
@@ -278,13 +278,13 @@ def _run_workflow(workflow):
         prompt_id = result.get("prompt_id")
         
         if not prompt_id:
-            print(f"❌ Keine prompt_id erhalten: {result}")
+            print(f"❌ No prompt_id received: {result}")
             return None
             
-        print(f"✅ Workflow gesendet. Prompt ID: {prompt_id}")
+        print(f"✅ Workflow sent. Prompt ID: {prompt_id}")
         
-        # Warte auf Fertigstellung
-        max_wait = 300  # 5 Minuten
+        # Wait for completion
+        max_wait = 300  # 5 minutes
         start_time = time.monotonic()
 
         while True:
@@ -297,21 +297,21 @@ def _run_workflow(workflow):
                         status = prompt_history.get("status", {})
                         
                         if status.get("status_str") == "success":
-                            print(f"✅ Workflow erfolgreich abgeschlossen!")
+                            print(f"✅ Workflow completed successfully!")
                             return prompt_history
                         elif status.get("status_str") == "error":
-                            print(f"❌ Workflow Fehler: {status}")
+                            print(f"❌ Workflow Error: {status}")
                             return None
                 
             except requests.exceptions.RequestException as e:
-                print(f"⚠️ History API Fehler: {e}")
+                print(f"⚠️ History API Error: {e}")
             
             elapsed = time.monotonic() - start_time
             if elapsed >= max_wait:
-                print(f"⏰ Workflow Timeout nach {max_wait}s")
+                print(f"⏰ Workflow Timeout after {max_wait}s")
                 return None
             
-            print(f"⏳ Workflow läuft... ({int(elapsed)}s)")
+            print(f"⏳ Workflow running... ({int(elapsed)}s)")
             time.sleep(5)
         
     except requests.exceptions.RequestException as e:
@@ -323,10 +323,10 @@ def _run_workflow(workflow):
 
 def _copy_to_volume_output(file_path: Path) -> str:
     """Copy file to the volume output directory."""
-    print(f"📁 Kopiere Datei zu Volume Output: {file_path}")
+    print(f"📁 Copying file to Volume Output: {file_path}")
     
     try:
-        # Volume Output Directory (persistentes Volume, falls vorhanden)
+        # Volume Output Directory (persistent volume, if available)
         volume_output_dir = _get_volume_base() / "comfyui" / "output"
         volume_output_dir.mkdir(parents=True, exist_ok=True)
         
@@ -338,19 +338,19 @@ def _copy_to_volume_output(file_path: Path) -> str:
         dest_filename = f"comfyui-{timestamp_str}-{unique_id}-{file_path.name}"
         dest_path = volume_output_dir / dest_filename
         
-        # Datei kopieren
+        # Copy file
         import shutil
         shutil.copy2(file_path, dest_path)
         
-        print(f"✅ Datei erfolgreich kopiert zu: {dest_path}")
-        print(f"📊 Dateigröße: {dest_path.stat().st_size / (1024*1024):.2f} MB")
+        print(f"✅ File successfully copied to: {dest_path}")
+        print(f"📊 File size: {dest_path.stat().st_size / (1024*1024):.2f} MB")
         
-        # Pfad für Response zurückgeben (absolut im Container)
+        # Return path for response (absolute in container)
         relative_path = str(dest_path)
         return relative_path
         
     except Exception as e:
-        print(f"❌ Volume Copy Fehler: {e}")
+        print(f"❌ Volume Copy Error: {e}")
         import traceback
         print(f"📋 Traceback: {traceback.format_exc()}")
         return f"Error copying {file_path.name}: {e}"
@@ -359,28 +359,28 @@ def handler(event):
     """
     Runpod handler for ComfyUI workflows.
     """
-    print("🚀 Handler gestartet - ComfyUI Workflow wird verarbeitet...")
+    print("🚀 Handler started - processing ComfyUI workflow...")
     print(f"📋 Event Type: {event.get('type', 'unknown')}")
     
-    # Heartbeat für Runpod Serverless (verhindert Idle Timeout während Download)
+    # Heartbeat for Runpod Serverless (prevents idle timeout during download)
     if event.get("type") == "heartbeat":
-        print("💓 Heartbeat empfangen - Worker bleibt aktiv")
+        print("💓 Heartbeat received - worker stays active")
         return {"status": "ok"}
     
     try:
-        # Volume Models Setup - MUSS vor ComfyUI Start passieren!
-        print("📦 Setup Volume Models...")
+        # Volume Models Setup - MUST happen before ComfyUI start!
+        print("📦 Setting up Volume Models...")
         volume_setup_success = _setup_volume_models()
         if not volume_setup_success:
-            print("⚠️ Volume Models Setup fehlgeschlagen - ComfyUI startet ohne Volume Models")
+            print("⚠️ Volume Models Setup failed - ComfyUI will start without Volume Models")
         else:
-            print("✅ Volume Models Setup erfolgreich - ComfyUI wird Models beim Start finden!")
-            # Kurze Pause um sicherzustellen dass Symlinks fertig sind
+            print("✅ Volume Models Setup successful - ComfyUI will find models at startup!")
+            # Short pause to ensure symlinks are ready
             time.sleep(2)
-            print("🔗 Symlinks stabilisiert - ComfyUI kann jetzt starten")
+            print("🔗 Symlinks stabilized - ComfyUI can now start")
         
-        # ComfyUI starten (NACH Volume Setup!)
-        print("🚀 Starte ComfyUI im Hintergrund mit optimalen Einstellungen...")
+        # Start ComfyUI (AFTER Volume Setup!)
+        print("🚀 Starting ComfyUI in background with optimal settings...")
         comfy_cmd = [
             "python", "/workspace/ComfyUI/main.py",
             "--listen", "127.0.0.1",
@@ -390,7 +390,7 @@ def handler(event):
             "--verbose",
             "--cache-lru", "3"  # Small LRU cache for better model detection after symlinks
         ]
-        print(f"🎯 ComfyUI Start-Command: {' '.join(comfy_cmd)}")
+        print(f"🎯 ComfyUI Start Command: {' '.join(comfy_cmd)}")
         
         # Use DEVNULL to prevent subprocess from blocking on unconsumed stdout
         comfy_process = subprocess.Popen(
@@ -400,9 +400,9 @@ def handler(event):
             cwd="/workspace/ComfyUI"
         )
         
-        # Warte bis ComfyUI bereit ist
+        # Wait until ComfyUI is ready
         if not _wait_for_comfyui():
-            return {"error": "ComfyUI konnte nicht gestartet werden"}
+            return {"error": "ComfyUI could not be started"}
         
         # Add delay before model refresh to ensure ComfyUI model scanning is fully initialized
         if volume_setup_success and _parse_bool_env("COMFYUI_REFRESH_MODELS", "true"):
@@ -410,21 +410,21 @@ def handler(event):
             time.sleep(5)
             _force_model_refresh()
         
-        # Workflow aus Input extrahieren
+        # Extract workflow from input
         workflow = event.get("input", {}).get("workflow")
         if not workflow:
-            return {"error": "Kein 'workflow' in input gefunden"}
+            return {"error": "No 'workflow' found in input"}
         
-        # Workflow ausführen
+        # Execute workflow
         result = _run_workflow(workflow)
         if not result:
-            return {"error": "Workflow konnte nicht ausgeführt werden"}
+            return {"error": "Workflow could not be executed"}
         
-        # Generierte Bilder finden
+        # Find generated images
         image_paths = []
         outputs = result.get("outputs", {})
         
-        # Durchsuche alle Output-Nodes nach Bildern
+        # Search all output nodes for images
         for node_id, node_output in outputs.items():
             if "images" in node_output:
                 for img_info in node_output["images"]:
@@ -433,33 +433,33 @@ def handler(event):
                         full_path = Path("/workspace/ComfyUI/output") / filename
                         if full_path.exists():
                             image_paths.append(full_path)
-                            print(f"🖼️ Bild gefunden: {full_path}")
+                            print(f"🖼️ Image found: {full_path}")
         
-        # Fallback: Suche in output Verzeichnis nach neuen Bildern
+        # Fallback: Search output directory for new images
         if not image_paths:
-            print("🔍 Fallback: Suche in output Verzeichnis...")
+            print("🔍 Fallback: Searching output directory...")
             output_dir = Path("/workspace/ComfyUI/output")
             if output_dir.exists():
                 for img_path in output_dir.glob("*.png"):
-                    # Nur Bilder der letzten 60 Sekunden
+                    # Only images from the last 60 seconds
                     if time.time() - img_path.stat().st_mtime < 60:
                         image_paths.append(img_path)
-                        print(f"🖼️ Neues Bild gefunden: {img_path}")
+                        print(f"🖼️ New image found: {img_path}")
         
         if not image_paths:
-            return {"error": "Keine generierten Bilder gefunden"}
+            return {"error": "No generated images found"}
         
-        # Bilder zu Volume Output kopieren
+        # Copy images to Volume Output
         output_paths = []
         for img_path in image_paths:
             volume_path = _copy_to_volume_output(img_path)
             output_paths.append(volume_path)
         
-        print(f"✅ Handler erfolgreich! {len(output_paths)} Bilder verarbeitet")
+        print(f"✅ Handler successful! {len(output_paths)} images processed")
         
         return {
             "volume_paths": output_paths,
-            "links": output_paths,  # rückwärtskompatibel
+            "links": output_paths,  # backward compatible
             "total_images": len(output_paths),
             "comfy_result": result
         }
@@ -468,7 +468,7 @@ def handler(event):
         print(f"❌ Handler Error: {e}")
         import traceback
         print(f"📋 Traceback: {traceback.format_exc()}")
-        return {"error": f"Handler Fehler: {str(e)}"}
+        return {"error": f"Handler Error: {str(e)}"}
 
 if __name__ == "__main__":
     runpod.serverless.start({"handler": handler})

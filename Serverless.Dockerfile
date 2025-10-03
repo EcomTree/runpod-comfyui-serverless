@@ -31,16 +31,16 @@ RUN git clone https://github.com/comfyanonymous/ComfyUI.git && \
     pip install --no-cache-dir librosa soundfile av moviepy
 
 # ------------------------------------------------------------
-# Volume Model Setup - Models kommen von S3 Network Volume
+# Volume Model Setup - Models come from S3 Network Volume
 # ------------------------------------------------------------
-# Erstelle leere Model Directories für ComfyUI
+# Create empty Model Directories for ComfyUI
 RUN mkdir -p /workspace/ComfyUI/models/checkpoints && \
     mkdir -p /workspace/ComfyUI/models/clip && \
     mkdir -p /workspace/ComfyUI/models/vae && \
     mkdir -p /workspace/ComfyUI/models/unet && \
     mkdir -p /workspace/ComfyUI/models/loras && \
     mkdir -p /workspace/ComfyUI/output && \
-    echo "📦 Model Directories erstellt"
+    echo "📦 Model Directories created"
 
 # ------------------------------------------------------------
 # Copy Worker Handler
