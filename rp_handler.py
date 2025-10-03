@@ -8,6 +8,9 @@ import subprocess
 import os
 import sys
 import uuid
+import shutil
+import datetime
+import traceback
 from pathlib import Path
 
 
@@ -89,7 +92,6 @@ def _setup_volume_models():
                 comfy_models_dir.unlink()
         elif comfy_models_dir.exists():
             print(f"🗑️ Removing local models directory: {comfy_models_dir}")
-            import shutil
             shutil.rmtree(comfy_models_dir)
         
         # Create symlink only if needed
@@ -146,7 +148,6 @@ def _setup_volume_models():
             
     except Exception as e:
         print(f"❌ Volume Model Setup Error: {e}")
-        import traceback
         print(f"📋 Traceback: {traceback.format_exc()}")
         return False
 
@@ -246,9 +247,12 @@ def _run_workflow(workflow):
         models_response = requests.get("http://127.0.0.1:8188/object_info", timeout=10)
         if models_response.status_code == 200:
             object_info = models_response.json()
-            checkpoints = object_info.get("CheckpointLoaderSimple", {}).get("input", {}).get("ckpt_name", [])
+            checkpoints = object_info.get("CheckpointLoaderSimple", {}).get("input", {}).get("required", {}).get("ckpt_name", [])
+            # Handle case where ckpt_name returns a nested list format [[model_names], {}]
+            if isinstance(checkpoints, list) and len(checkpoints) > 0 and isinstance(checkpoints[0], list):
+                checkpoints = checkpoints[0]
             print(f"📋 Available Checkpoints: {checkpoints}")
-            if not checkpoints:
+            if not checkpoints or (isinstance(checkpoints, list) and len(checkpoints) == 0):
                 print("⚠️ No checkpoints found!")
         
         # Check output directory
@@ -286,8 +290,11 @@ def _run_workflow(workflow):
         # Wait for completion
         max_wait = 300  # 5 minutes
         start_time = time.monotonic()
+        poll_interval = 5  # seconds
 
         while True:
+            elapsed = time.monotonic() - start_time
+            
             try:
                 history_response = requests.get(f"http://127.0.0.1:8188/history/{prompt_id}", timeout=10)
                 if history_response.status_code == 200:
@@ -306,13 +313,16 @@ def _run_workflow(workflow):
             except requests.exceptions.RequestException as e:
                 print(f"⚠️ History API Error: {e}")
             
-            elapsed = time.monotonic() - start_time
+            # Check timeout after the attempt to allow full duration
             if elapsed >= max_wait:
-                print(f"⏰ Workflow Timeout after {max_wait}s")
+                print(f"⏰ Workflow Timeout after {int(elapsed)}s (max: {max_wait}s)")
                 return None
             
-            print(f"⏳ Workflow running... ({int(elapsed)}s)")
-            time.sleep(5)
+            # Sleep only if we haven't timed out
+            remaining = max_wait - elapsed
+            sleep_time = min(poll_interval, remaining)
+            print(f"⏳ Workflow running... ({int(elapsed)}s / {max_wait}s)")
+            time.sleep(sleep_time)
         
     except requests.exceptions.RequestException as e:
         print(f"❌ ComfyUI API Error: {e}")
@@ -331,7 +341,6 @@ def _copy_to_volume_output(file_path: Path) -> str:
         volume_output_dir.mkdir(parents=True, exist_ok=True)
         
         # Unique filename with timestamp and UUID for better collision resistance
-        import datetime
         now = datetime.datetime.now(datetime.timezone.utc)
         timestamp_str = now.strftime("%Y%m%d_%H%M%S_%f")
         unique_id = str(uuid.uuid4())[:8]
@@ -339,7 +348,6 @@ def _copy_to_volume_output(file_path: Path) -> str:
         dest_path = volume_output_dir / dest_filename
         
         # Copy file
-        import shutil
         shutil.copy2(file_path, dest_path)
         
         print(f"✅ File successfully copied to: {dest_path}")
@@ -351,7 +359,6 @@ def _copy_to_volume_output(file_path: Path) -> str:
         
     except Exception as e:
         print(f"❌ Volume Copy Error: {e}")
-        import traceback
         print(f"📋 Traceback: {traceback.format_exc()}")
         return f"Error copying {file_path.name}: {e}"
 
@@ -466,7 +473,6 @@ def handler(event):
         
     except Exception as e:
         print(f"❌ Handler Error: {e}")
-        import traceback
         print(f"📋 Traceback: {traceback.format_exc()}")
         return {"error": f"Handler Error: {str(e)}"}
 
