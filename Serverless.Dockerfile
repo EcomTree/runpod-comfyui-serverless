@@ -4,7 +4,7 @@ FROM runpod/pytorch:2.8.0-py3.11-cuda12.8.1-cudnn-devel-ubuntu22.04
 # Metadata
 # ------------------------------------------------------------
 LABEL maintainer="Sebastian" \
-      description="ComfyUI – Runpod Serverless Worker"
+      description="ComfyUI H200 – Runpod Serverless Worker"
 
 # ------------------------------------------------------------
 # System Packages
@@ -17,12 +17,9 @@ RUN apt-get update && \
 # ------------------------------------------------------------
 # Python Dependencies
 # ------------------------------------------------------------
-RUN pip uninstall -y torch torchvision torchaudio xformers || true && \
-    pip install --no-cache-dir torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 \
-        --index-url https://download.pytorch.org/whl/cu128 && \
-    pip install --no-cache-dir ninja flash-attn --no-build-isolation && \
-    pip install --no-cache-dir tensorrt nvidia-tensorrt accelerate transformers diffusers scipy opencv-python Pillow numpy && \
-    pip install --no-cache-dir runpod requests pathlib boto3
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir runpod requests pyyaml && \
+    pip install --no-cache-dir scipy opencv-python Pillow numpy
 
 # ------------------------------------------------------------
 # ComfyUI Checkout (headless)
@@ -33,10 +30,17 @@ RUN git clone https://github.com/comfyanonymous/ComfyUI.git && \
     pip install --no-cache-dir $(grep -v -E "^torch([^a-z]|$)|torchvision|torchaudio" requirements.txt | grep -v "^#" | grep -v "^$" | tr '\n' ' ') && \
     pip install --no-cache-dir librosa soundfile av moviepy
 
-# Download default SD 1.5 model for default-api.json workflow
-RUN cd /workspace/ComfyUI/models/checkpoints && \
-    wget -O v1-5-pruned-emaonly-fp16.safetensors \
-    "https://huggingface.co/runwayml/stable-diffusion-v1-5/resolve/main/v1-5-pruned-emaonly.safetensors"
+# ------------------------------------------------------------
+# Volume Model Setup - Models kommen von S3 Network Volume
+# ------------------------------------------------------------
+# Erstelle leere Model Directories für ComfyUI
+RUN mkdir -p /workspace/ComfyUI/models/checkpoints && \
+    mkdir -p /workspace/ComfyUI/models/clip && \
+    mkdir -p /workspace/ComfyUI/models/vae && \
+    mkdir -p /workspace/ComfyUI/models/unet && \
+    mkdir -p /workspace/ComfyUI/models/loras && \
+    mkdir -p /workspace/ComfyUI/output && \
+    echo "📦 Model Directories erstellt"
 
 # ------------------------------------------------------------
 # Copy Worker Handler
