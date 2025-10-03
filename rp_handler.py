@@ -400,8 +400,13 @@ def _run_workflow(workflow):
         print(f"❌ Workflow Error: {e}")
         return None
 
-def _copy_to_volume_output(file_path: Path) -> str:
-    """Copy file to the volume output directory."""
+def _copy_to_volume_output(file_path: Path) -> dict:
+    """
+    Copy file to the volume output directory.
+    
+    Returns:
+        dict: {"success": bool, "path": str, "error": str}
+    """
     print(f"📁 Copying file to Volume Output: {file_path}")
     
     try:
@@ -422,14 +427,22 @@ def _copy_to_volume_output(file_path: Path) -> str:
         print(f"✅ File successfully copied to: {dest_path}")
         print(f"📊 File size: {dest_path.stat().st_size / (1024*1024):.2f} MB")
         
-        # Return path for response (absolute in container)
-        relative_path = str(dest_path)
-        return relative_path
+        # Return success with path
+        return {
+            "success": True,
+            "path": str(dest_path),
+            "error": None
+        }
         
     except Exception as e:
-        print(f"❌ Volume Copy Error: {e}")
+        error_msg = f"Error copying {file_path.name}: {e}"
+        print(f"❌ Volume Copy Error: {error_msg}")
         print(f"📋 Traceback: {traceback.format_exc()}")
-        return f"Error copying {file_path.name}: {e}"
+        return {
+            "success": False,
+            "path": None,
+            "error": error_msg
+        }
 
 def _start_comfyui_if_needed():
     """Start ComfyUI if it's not already running."""
@@ -606,18 +619,42 @@ def handler(event):
         
         # Copy images to Volume Output
         output_paths = []
+        failed_copies = []
+        
         for img_path in image_paths:
-            volume_path = _copy_to_volume_output(img_path)
-            output_paths.append(volume_path)
+            copy_result = _copy_to_volume_output(img_path)
+            if copy_result["success"]:
+                output_paths.append(copy_result["path"])
+            else:
+                failed_copies.append({
+                    "source": str(img_path),
+                    "error": copy_result["error"]
+                })
         
-        print(f"✅ Handler successful! {len(output_paths)} images processed")
+        # Check if any copies succeeded
+        if not output_paths:
+            error_details = "; ".join([f["error"] for f in failed_copies])
+            return {"error": f"Failed to copy all images to volume: {error_details}"}
         
-        return {
+        # Build response
+        response = {
             "volume_paths": output_paths,
             "links": output_paths,  # backward compatible
             "total_images": len(output_paths),
             "comfy_result": result
         }
+        
+        # Include warning about failed copies if any
+        if failed_copies:
+            response["warnings"] = {
+                "failed_copies": len(failed_copies),
+                "details": failed_copies
+            }
+            print(f"⚠️ {len(failed_copies)} image(s) failed to copy to volume")
+        
+        print(f"✅ Handler successful! {len(output_paths)} images processed")
+        
+        return response
         
     except Exception as e:
         print(f"❌ Handler Error: {e}")
