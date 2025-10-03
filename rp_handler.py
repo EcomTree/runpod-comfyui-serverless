@@ -1,4 +1,4 @@
-THIS SHOULD BE A LINTER ERROR#!/usr/bin/env python3
+#!/usr/bin/env python3
 
 import runpod
 import requests
@@ -77,6 +77,27 @@ def _setup_volume_models():
         comfy_models_dir = Path("/workspace/ComfyUI/models")
         comfy_models_parent = comfy_models_dir.parent
         comfy_models_parent.mkdir(parents=True, exist_ok=True)
+
+        # Check for self-referential symlink: if volume base is /workspace and volume_models_dir
+        # would be the same as or contain comfy_models_dir, skip symlink creation
+        try:
+            volume_resolved = volume_models_dir.resolve()
+            comfy_resolved = comfy_models_dir.resolve() if comfy_models_dir.exists() else comfy_models_dir
+            
+            if volume_resolved == comfy_resolved:
+                print(f"✅ Volume models directory is already at the expected location: {comfy_models_dir}")
+                print(f"⚠️ Skipping symlink creation (would be self-referential)")
+                return True
+            
+            # Also check if both are under /workspace (no real volume mounted)
+            if volume_base == Path("/workspace"):
+                print(f"⚠️ No network volume detected (using /workspace as fallback)")
+                print(f"✅ Using local models directory: {comfy_models_dir}")
+                # Ensure the directory exists
+                comfy_models_dir.mkdir(parents=True, exist_ok=True)
+                return True
+        except (FileNotFoundError, OSError) as e:
+            print(f"⚠️ Path resolution warning: {e}")
 
         symlink_needed = True
         
