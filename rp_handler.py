@@ -12,14 +12,14 @@ from pathlib import Path
 
 
 def _parse_bool_env(key: str, default: str = "false") -> bool:
-    """Umgebungsvariable sicher als Bool interpretieren."""
+    """Safely parse environment variable as boolean."""
 
     value = os.getenv(key, default).lower()
     return value in {"1", "true", "yes", "on"}
 
 
 def _wait_for_path(path: Path, timeout: int = 20, poll_interval: float = 1.0) -> bool:
-    """Warte bis ein Pfad existiert oder Timeout erreicht wird."""
+    """Wait until a path exists or timeout is reached."""
 
     deadline = time.time() + timeout
     while time.time() < deadline:
@@ -31,7 +31,7 @@ def _wait_for_path(path: Path, timeout: int = 20, poll_interval: float = 1.0) ->
 
 
 def _get_volume_base() -> Path:
-    """Ermittle den Basis-Mountpfad für das Network Volume in Serverless/Pods."""
+    """Determine the base mount path for the Network Volume in Serverless/Pods."""
     runpod_volume = Path("/runpod-volume")
     timeout = int(os.getenv("NETWORK_VOLUME_TIMEOUT", "15"))
 
@@ -42,7 +42,7 @@ def _get_volume_base() -> Path:
     return Path("/workspace")
 
 def _setup_volume_models():
-    """Setup Volume Models mit Symlinks - Die einzige Lösung die in Serverless funktioniert!"""
+    """Setup Volume Models with symlinks - the only solution that works in Serverless!"""
     print("📦 Setup Volume Models mit Symlinks...")
     
     try:
@@ -151,7 +151,7 @@ def _setup_volume_models():
         return False
 
 def _wait_for_comfyui(max_retries=30, delay=2):
-    """Warte bis ComfyUI bereit ist."""
+    """Wait until ComfyUI is ready."""
     for i in range(max_retries):
         try:
             response = requests.get("http://127.0.0.1:8188/system_stats", timeout=5)
@@ -170,7 +170,7 @@ def _wait_for_comfyui(max_retries=30, delay=2):
 
 
 def _direct_model_refresh() -> bool:
-    """Trigger direkten Model-Refresh über object_info Endpoint."""
+    """Trigger a direct model refresh via the object_info endpoint."""
 
     try:
         print("🔄 Alternative: Direct Model Scan...")
@@ -187,7 +187,7 @@ def _direct_model_refresh() -> bool:
 
 
 def _force_model_refresh() -> bool:
-    """Versuche Model-Refresh über Manager-Endpoint, fallback zu Direct Scan."""
+    """Attempt model refresh via manager endpoint, fallback to direct scan."""
 
     print("🔄 Force Model Refresh nach Symlink-Erstellung...")
     manager_root = "http://127.0.0.1:8188/manager"
@@ -226,7 +226,7 @@ def _force_model_refresh() -> bool:
 
 
 def _run_workflow(workflow):
-    """Führe ComfyUI Workflow aus."""
+    """Execute ComfyUI workflow."""
     client_id = str(uuid.uuid4())
     
     try:
@@ -288,9 +288,6 @@ def _run_workflow(workflow):
         start_time = time.monotonic()
 
         while True:
-            elapsed = time.monotonic() - start_time
-            if elapsed >= max_wait:
-                break
             try:
                 history_response = requests.get(f"http://127.0.0.1:8188/history/{prompt_id}", timeout=10)
                 if history_response.status_code == 200:
@@ -305,16 +302,17 @@ def _run_workflow(workflow):
                         elif status.get("status_str") == "error":
                             print(f"❌ Workflow Fehler: {status}")
                             return None
-                            
-                print(f"⏳ Workflow läuft... ({int(elapsed)}s)")
-                time.sleep(5)
                 
             except requests.exceptions.RequestException as e:
                 print(f"⚠️ History API Fehler: {e}")
-                time.sleep(5)
-        
-        print(f"⏰ Workflow Timeout nach {max_wait}s")
-        return None
+            
+            elapsed = time.monotonic() - start_time
+            if elapsed >= max_wait:
+                print(f"⏰ Workflow Timeout nach {max_wait}s")
+                return None
+            
+            print(f"⏳ Workflow läuft... ({int(elapsed)}s)")
+            time.sleep(5)
         
     except requests.exceptions.RequestException as e:
         print(f"❌ ComfyUI API Error: {e}")
@@ -324,7 +322,7 @@ def _run_workflow(workflow):
         return None
 
 def _copy_to_volume_output(file_path: Path) -> str:
-    """Kopiere Datei zu Volume Output Directory."""
+    """Copy file to the volume output directory."""
     print(f"📁 Kopiere Datei zu Volume Output: {file_path}")
     
     try:
@@ -332,10 +330,12 @@ def _copy_to_volume_output(file_path: Path) -> str:
         volume_output_dir = _get_volume_base() / "comfyui" / "output"
         volume_output_dir.mkdir(parents=True, exist_ok=True)
         
-        # Unique filename mit timestamp
+        # Unique filename with timestamp and UUID for better collision resistance
         import datetime
-        timestamp = int(datetime.datetime.utcnow().timestamp())
-        dest_filename = f"comfyui-{timestamp}-{file_path.name}"
+        now = datetime.datetime.now(datetime.timezone.utc)
+        timestamp_str = now.strftime("%Y%m%d_%H%M%S_%f")
+        unique_id = str(uuid.uuid4())[:8]
+        dest_filename = f"comfyui-{timestamp_str}-{unique_id}-{file_path.name}"
         dest_path = volume_output_dir / dest_filename
         
         # Datei kopieren
@@ -357,7 +357,7 @@ def _copy_to_volume_output(file_path: Path) -> str:
 
 def handler(event):
     """
-    Runpod Handler für ComfyUI Workflows
+    Runpod handler for ComfyUI workflows.
     """
     print("🚀 Handler gestartet - ComfyUI Workflow wird verarbeitet...")
     print(f"📋 Event Type: {event.get('type', 'unknown')}")
@@ -392,10 +392,11 @@ def handler(event):
         ]
         print(f"🎯 ComfyUI Start-Command: {' '.join(comfy_cmd)}")
         
+        # Use DEVNULL to prevent subprocess from blocking on unconsumed stdout
         comfy_process = subprocess.Popen(
             comfy_cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
             cwd="/workspace/ComfyUI"
         )
         
@@ -403,7 +404,10 @@ def handler(event):
         if not _wait_for_comfyui():
             return {"error": "ComfyUI konnte nicht gestartet werden"}
         
+        # Add delay before model refresh to ensure ComfyUI model scanning is fully initialized
         if volume_setup_success and _parse_bool_env("COMFYUI_REFRESH_MODELS", "true"):
+            print("⏳ Waiting for ComfyUI model scanning to initialize...")
+            time.sleep(5)
             _force_model_refresh()
         
         # Workflow aus Input extrahieren
