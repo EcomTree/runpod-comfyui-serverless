@@ -16,6 +16,7 @@ from pathlib import Path
 import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
 from botocore.config import Config
+from filelock import FileLock, Timeout
 
 # Constants
 WORKSPACE_PATH = Path("/workspace")
@@ -30,6 +31,9 @@ COMFYUI_BASE_URL = f"http://{COMFYUI_HOST}:{COMFYUI_PORT}"
 DEFAULT_WORKFLOW_DURATION_SECONDS = 60  # Default fallback for workflow start time
 SUPPORTED_IMAGE_EXTENSIONS = ["*.png", "*.jpg", "*.jpeg", "*.webp", "*.gif"]
 URL_TRUNCATE_LENGTH = 100  # Maximum characters to display when logging URLs
+LOCK_TIMEOUT = 300  # 5 minutes timeout for acquiring locks
+COMFYUI_STARTUP_LOCK = WORKSPACE_PATH / ".comfyui_startup.lock"
+VOLUME_MODELS_LOCK = WORKSPACE_PATH / ".volume_models.lock"
 
 # Global variable to track the ComfyUI process
 _comfyui_process = None
@@ -257,6 +261,30 @@ def _setup_volume_models():
     """Setup Volume Models with symlinks - the only solution that works in Serverless!"""
     print("📦 Setting up Volume Models with symlinks...")
     
+    # Acquire lock to prevent race conditions during symlink creation
+    lock = FileLock(VOLUME_MODELS_LOCK, timeout=LOCK_TIMEOUT)
+    
+    try:
+        print(f"🔒 Acquiring lock for volume model setup...")
+        with lock:
+            print(f"✅ Lock acquired, proceeding with volume model setup")
+            return _setup_volume_models_locked()
+    except Timeout:
+        print(f"⏰ Lock timeout after {LOCK_TIMEOUT}s - another process may be setting up models")
+        # Check if setup was already completed by another process
+        if COMFYUI_MODELS_PATH.is_symlink() and COMFYUI_MODELS_PATH.exists():
+            print("✅ Models symlink already exists (set up by another process)")
+            return True
+        print("❌ Lock timeout and no valid symlink found")
+        return False
+    except Exception as e:
+        print(f"❌ Lock acquisition error: {e}")
+        print(f"📋 Traceback: {traceback.format_exc()}")
+        return False
+
+
+def _setup_volume_models_locked():
+    """Internal function to setup volume models - called with lock held."""
     try:
         volume_base = _get_volume_base()
         print(f"🔍 Volume Base: {volume_base}")
@@ -651,7 +679,7 @@ def _start_comfyui_if_needed():
     """Start ComfyUI if it's not already running."""
     global _comfyui_process
     
-    # Check if ComfyUI is already running
+    # Quick check without lock first
     if _is_comfyui_running():
         print("✅ ComfyUI is already running, skipping startup")
         # Check if we have a process reference and it's still alive
@@ -659,10 +687,42 @@ def _start_comfyui_if_needed():
             print(f"📋 Using existing ComfyUI process (PID: {_comfyui_process.pid})")
         return True
     
-    # If we have a stale process reference, clear it
-    if _comfyui_process and _comfyui_process.poll() is not None:
-        print("🔄 Clearing stale ComfyUI process reference")
-        _comfyui_process = None
+    # Acquire lock to prevent race conditions during startup
+    lock = FileLock(COMFYUI_STARTUP_LOCK, timeout=LOCK_TIMEOUT)
+    
+    try:
+        print(f"🔒 Acquiring lock for ComfyUI startup...")
+        with lock:
+            print(f"✅ Lock acquired, checking ComfyUI status again")
+            
+            # Check again with lock held - another process may have started it
+            if _is_comfyui_running():
+                print("✅ ComfyUI was started by another process while waiting for lock")
+                return True
+            
+            # If we have a stale process reference, clear it
+            if _comfyui_process and _comfyui_process.poll() is not None:
+                print("🔄 Clearing stale ComfyUI process reference")
+                _comfyui_process = None
+            
+            return _start_comfyui_locked()
+    except Timeout:
+        print(f"⏰ Lock timeout after {LOCK_TIMEOUT}s - another process may be starting ComfyUI")
+        # Check if ComfyUI was started by another process
+        if _is_comfyui_running():
+            print("✅ ComfyUI is now running (started by another process)")
+            return True
+        print("❌ Lock timeout and ComfyUI is not running")
+        return False
+    except Exception as e:
+        print(f"❌ Lock acquisition error: {e}")
+        print(f"📋 Traceback: {traceback.format_exc()}")
+        return False
+
+
+def _start_comfyui_locked():
+    """Internal function to start ComfyUI - called with lock held."""
+    global _comfyui_process
     
     print("🚀 Starting ComfyUI in background with optimal settings...")
     comfy_cmd = [

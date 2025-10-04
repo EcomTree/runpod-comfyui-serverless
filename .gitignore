@@ -66,6 +66,9 @@ logs/
 *.tmp
 *.temp
 
+# Lock files (resource locking)
+*.lock
+
 # Test scripts (local development only)
 test_*.sh
 
