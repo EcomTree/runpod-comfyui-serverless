@@ -31,7 +31,11 @@ COMFYUI_BASE_URL = f"http://{COMFYUI_HOST}:{COMFYUI_PORT}"
 DEFAULT_WORKFLOW_DURATION_SECONDS = 60  # Default fallback for workflow start time
 SUPPORTED_IMAGE_EXTENSIONS = ["*.png", "*.jpg", "*.jpeg", "*.webp", "*.gif"]
 URL_TRUNCATE_LENGTH = 100  # Maximum characters to display when logging URLs
-LOCK_TIMEOUT = 300  # 5 minutes timeout for acquiring locks
+# Lock timeout for acquiring locks, configurable via environment variable
+try:
+    LOCK_TIMEOUT = int(os.getenv("LOCK_TIMEOUT_SECONDS", "300"))
+except ValueError:
+    LOCK_TIMEOUT = 300  # fallback to default if invalid
 COMFYUI_STARTUP_LOCK = WORKSPACE_PATH / ".comfyui_startup.lock"
 VOLUME_MODELS_LOCK = WORKSPACE_PATH / ".volume_models.lock"
 
