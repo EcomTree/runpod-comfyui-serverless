@@ -35,13 +35,13 @@ if [[ -n "${COMMON_HELPERS_PATH:-}" ]]; then
 fi
 
 for candidate in "${COMMON_HELPERS_CANDIDATES[@]}"; do
-    if [[ -n "$candidate" && -f "$candidate" ]]; then
+    if [[ -n "$candidate" && -f "$candidate" && -r "$candidate" ]]; then
         COMMON_HELPERS="$candidate"
         break
     fi
 done
 
-if [[ -n "$COMMON_HELPERS" && -f "$COMMON_HELPERS" ]]; then
+if [[ -n "$COMMON_HELPERS" && -f "$COMMON_HELPERS" && -r "$COMMON_HELPERS" ]]; then
     # shellcheck disable=SC1090
     source "$COMMON_HELPERS"
 else
