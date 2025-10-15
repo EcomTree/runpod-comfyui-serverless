@@ -14,10 +14,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_BASENAME="${REPO_BASENAME:-$(basename "$SCRIPT_DIR")}"
 
 # Common helper script resolution order:
-# 1. Local paths (SCRIPT_DIR and PWD relative)
-# 2. Workspace paths (/workspace and /workspace/<REPO_BASENAME>)
-# 3. CODEX_WORKSPACE environment variable paths (if set)
-# 4. COMMON_HELPERS_PATH environment variable (if set, highest priority as last checked)
+# 1. COMMON_HELPERS_PATH environment variable (if set, highest priority)
+# 2. Local paths (SCRIPT_DIR and PWD relative)
+# 3. Workspace paths (/workspace and /workspace/<REPO_BASENAME>)
+# 4. CODEX_WORKSPACE environment variable paths (if set)
 # The first readable file found will be sourced; if none found, inline fallback helpers are used.
 COMMON_HELPERS=""
 declare -a COMMON_HELPERS_CANDIDATES=(
@@ -37,7 +37,7 @@ if [[ -n "${CODEX_WORKSPACE:-}" ]]; then
 fi
 
 if [[ -n "${COMMON_HELPERS_PATH:-}" ]]; then
-    COMMON_HELPERS_CANDIDATES+=("${COMMON_HELPERS_PATH}")
+    COMMON_HELPERS_CANDIDATES=("${COMMON_HELPERS_PATH}" "${COMMON_HELPERS_CANDIDATES[@]}")
 fi
 
 for candidate in "${COMMON_HELPERS_CANDIDATES[@]}"; do
@@ -104,7 +104,10 @@ PYTHON_CMD=python3
 PYTHON_PACKAGES=("runpod" "requests" "boto3" "Pillow" "numpy")
 PYTHON_IMPORT_NAMES=("runpod" "requests" "boto3" "PIL" "numpy")
 
-if [[ "$(basename "$SCRIPT_DIR")" == "$REPO_BASENAME" ]]; then
+# Check if we're already in the target repository
+# Compare against the expected repo name (hardcoded) to avoid self-match with dynamic REPO_BASENAME
+EXPECTED_REPO_NAME="${EXPECTED_REPO_NAME:-runpod-comfyui-serverless}"
+if [[ "$(basename "$SCRIPT_DIR")" == "$EXPECTED_REPO_NAME" ]]; then
     PREEXISTING_REPO=true
 else
     PREEXISTING_REPO=false
