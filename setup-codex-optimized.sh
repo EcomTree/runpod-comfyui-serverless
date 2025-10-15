@@ -106,7 +106,7 @@ PYTHON_IMPORT_NAMES=("runpod" "requests" "boto3" "PIL" "numpy")
 
 # Check if we're already in the target repository
 # Compare against the expected repo name (hardcoded) to avoid self-match with dynamic REPO_BASENAME
-EXPECTED_REPO_NAME="runpod-comfyui-serverless"
+EXPECTED_REPO_NAME="${EXPECTED_REPO_NAME:-runpod-comfyui-serverless}"
 if [[ "$(basename "$SCRIPT_DIR")" == "$EXPECTED_REPO_NAME" ]]; then
     PREEXISTING_REPO=true
 else
