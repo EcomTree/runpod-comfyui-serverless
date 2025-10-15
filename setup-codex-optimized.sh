@@ -10,7 +10,7 @@
 set -Eeuo pipefail
 trap 'printf "❌ Error on line %s\n" "${BASH_LINENO[0]}" >&2' ERR
 
-REPO_BASENAME="runpod-comfyui-serverless"
+REPO_BASENAME="${REPO_BASENAME:-runpod-comfyui-serverless}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 COMMON_HELPERS=""
