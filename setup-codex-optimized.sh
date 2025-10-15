@@ -7,31 +7,19 @@
 # Version: 3.0 (State-of-the-Art Optimized)
 #
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+COMMON_HELPERS="${SCRIPT_DIR}/scripts/common-codex.sh"
+
+if [ -f "$COMMON_HELPERS" ]; then
+    # shellcheck disable=SC1090
+    source "$COMMON_HELPERS"
+else
+    echo "Missing helper script: $COMMON_HELPERS" >&2
+    exit 1
+fi
+
 set -Eeuo pipefail
 trap 'echo -e "${RED}❌ Error on line ${BASH_LINENO[0]}${NC}"' ERR
-
-# Colors for better readability
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
-
-echo_info() {
-    echo -e "${BLUE}ℹ️  $1${NC}"
-}
-
-echo_success() {
-    echo -e "${GREEN}✅ $1${NC}"
-}
-
-echo_warning() {
-    echo -e "${YELLOW}⚠️  $1${NC}"
-}
-
-echo_error() {
-    echo -e "${RED}❌ $1${NC}"
-}
 
 # Optional Logging
 if [[ -n "${LOG_FILE:-}" ]]; then
@@ -48,37 +36,12 @@ PYTHON_CMD=python3
 PYTHON_PACKAGES=("runpod" "requests" "boto3" "Pillow" "numpy")
 PYTHON_IMPORT_NAMES=("runpod" "requests" "boto3" "PIL" "numpy")
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_BASENAME="runpod-comfyui-serverless"
 if [[ "$(basename "$SCRIPT_DIR")" == "$REPO_BASENAME" ]]; then
     PREEXISTING_REPO=true
 else
     PREEXISTING_REPO=false
 fi
-
-# Function: Check if command exists
-command_exists() {
-    command -v "$1" >/dev/null 2>&1
-}
-
-# Retry helper for flaky commands
-retry() {
-    local attempt=1
-    local exit_code=0
-
-    while true; do
-        "$@" && return 0
-        exit_code=$?
-
-        if (( attempt >= RETRY_ATTEMPTS )); then
-            return "$exit_code"
-        fi
-
-        echo_warning "Attempt ${attempt}/${RETRY_ATTEMPTS} failed – retrying in ${RETRY_DELAY}s"
-        sleep "$RETRY_DELAY"
-        attempt=$((attempt + 1))
-    done
-}
 
 # Function: Check Python version
 check_python_version() {
@@ -196,7 +159,7 @@ echo_info "📝 Script Version: 3.0 (State-of-the-Art Optimized)"
 echo_info "🔍 Running pre-flight checks..."
 
 # Check if we're in Codex environment (typical indicators)
-if [ -d "/workspace" ] || [ -n "${CODEX_WORKSPACE:-}" ]; then
+if is_codex_environment; then
     echo_success "Codex environment detected"
     export IN_CODEX=true
 else
@@ -243,7 +206,7 @@ if $PREEXISTING_REPO; then
 elif [ ! -d "$REPO_DIR" ]; then
     echo_info "📦 Cloning repository..."
     GIT_CLONE_LOG="$(mktemp /tmp/git-clone.XXXXXX.log)"
-    if git clone https://github.com/EcomTree/runpod-comfyui-serverless.git "$REPO_DIR" >"$GIT_CLONE_LOG" 2>&1; then
+    if retry git clone https://github.com/EcomTree/runpod-comfyui-serverless.git "$REPO_DIR" >"$GIT_CLONE_LOG" 2>&1; then
         rm -f "$GIT_CLONE_LOG"
         cd "$REPO_DIR"
         echo_success "Repository cloned"
@@ -268,7 +231,7 @@ echo_info "🌿 Ensuring repository is on main branch..."
 GIT_FETCH_LOG="$(mktemp /tmp/git-fetch.XXXXXX.log)"
 GIT_PULL_LOG="$(mktemp /tmp/git-pull.XXXXXX.log)"
 
-if git fetch origin main --tags >"$GIT_FETCH_LOG" 2>&1; then
+if retry git fetch origin main --tags >"$GIT_FETCH_LOG" 2>&1; then
     if git show-ref --verify --quiet refs/heads/main; then
         if ! git checkout main 2>/dev/null; then
             echo_warning "Local main branch broken – recreating from origin/main"
@@ -282,7 +245,7 @@ if git fetch origin main --tags >"$GIT_FETCH_LOG" 2>&1; then
         echo_warning "Local changes present – skipping git pull"
         echo_info "Run 'git status' to see changes"
     else
-        if git pull --ff-only origin main >"$GIT_PULL_LOG" 2>&1; then
+        if retry git pull --ff-only origin main >"$GIT_PULL_LOG" 2>&1; then
             echo_success "Branch main successfully updated"
         else
             echo_warning "Could not update main – please check manually"
@@ -497,15 +460,25 @@ done
 # 11. Final Summary
 # ============================================================
 echo ""
+PYTHON_VERSION="$($PYTHON_CMD --version 2>&1 | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1 || echo 'N/A')"
+PIP_VERSION="$($PYTHON_CMD -m pip --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1 || echo 'N/A')"
+DOCKER_VERSION="$(docker --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1 || echo 'not available')"
+NODE_VERSION="$(node --version 2>/dev/null || echo 'not detected')"
+JQ_VERSION="$(jq --version 2>/dev/null || echo 'not available')"
+CURL_VERSION="$(curl --version 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1 || echo 'not available')"
+GIT_VERSION="$(git --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1 || echo 'not available')"
+
+echo ""
 echo_success "✨ Setup completed successfully!"
 echo ""
 echo_info "📋 Environment Summary:"
-echo "   ├─ Python: $($PYTHON_CMD --version 2>&1 | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1 || echo 'N/A')"
-echo "   ├─ pip: $($PYTHON_CMD -m pip --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1 || echo 'N/A')"
-echo "   ├─ Node.js: $(node --version 2>/dev/null || echo 'not detected')"
-echo "   ├─ jq: $(jq --version 2>/dev/null || echo 'not available')"
-echo "   ├─ curl: $(curl --version 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1 || echo 'not available')"
-echo "   └─ git: $(git --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1 || echo 'not available')"
+echo "   ├─ Python: $PYTHON_VERSION"
+echo "   ├─ pip: $PIP_VERSION"
+echo "   ├─ Docker: $DOCKER_VERSION"
+echo "   ├─ Node.js: $NODE_VERSION"
+echo "   ├─ jq: $JQ_VERSION"
+echo "   ├─ curl: $CURL_VERSION"
+echo "   └─ git: $GIT_VERSION"
 echo ""
 echo_info "📁 Paths:"
 echo "   ├─ Workspace: $(pwd)"
@@ -521,7 +494,6 @@ echo "   3. For local testing: $PYTHON_CMD rp_handler.py"
 echo "   4. For Docker build: docker build -f Serverless.Dockerfile ."
 echo ""
 
-# Codex-specific tips
 if [ "$IN_CODEX" = true ]; then
     echo_info "💡 Codex-specific tips:"
     echo "   • Enable 'Container Caching' for faster restarts"
