@@ -7,6 +7,8 @@
 # Version: 3.0 (State-of-the-Art Optimized)
 #
 
+set -Eeuo pipefail
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMMON_HELPERS="${SCRIPT_DIR}/scripts/common-codex.sh"
 
@@ -14,11 +16,41 @@ if [ -f "$COMMON_HELPERS" ]; then
     # shellcheck disable=SC1090
     source "$COMMON_HELPERS"
 else
-    echo "Missing helper script: $COMMON_HELPERS" >&2
-    exit 1
+    # Fallback: inline minimal helpers for standalone execution
+    echo "⚠️  Helper script not found, using inline fallback" >&2
+    GREEN='\033[0;32m'
+    BLUE='\033[0;34m'
+    YELLOW='\033[1;33m'
+    RED='\033[0;31m'
+    NC='\033[0m'
+    
+    echo_info() { echo -e "${BLUE}ℹ️  $1${NC}"; }
+    echo_success() { echo -e "${GREEN}✅ $1${NC}"; }
+    echo_warning() { echo -e "${YELLOW}⚠️  $1${NC}" >&2; }
+    echo_error() { echo -e "${RED}❌ $1${NC}" >&2; }
+    command_exists() { command -v "$1" >/dev/null 2>&1; }
+    
+    retry() {
+        local attempt=1 exit_code=0
+        local max_attempts=${RETRY_ATTEMPTS:-3} delay=${RETRY_DELAY:-2}
+        while true; do
+            "$@" && return 0
+            exit_code=$?
+            if (( attempt >= max_attempts )); then return "$exit_code"; fi
+            echo_warning "Attempt ${attempt}/${max_attempts} failed – retrying in ${delay}s"
+            sleep "$delay"
+            attempt=$((attempt + 1))
+        done
+    }
+    
+    is_codex_environment() {
+        [ -n "${CODEX_CONTAINER:-}" ] || \
+        [ -n "${RUNPOD_POD_ID:-}" ] || \
+        [ -n "${CODEX_WORKSPACE:-}" ] || \
+        [ -d "/workspace" ]
+    }
 fi
 
-set -Eeuo pipefail
 trap 'echo -e "${RED}❌ Error on line ${BASH_LINENO[0]}${NC}"' ERR
 
 # Optional Logging
@@ -463,7 +495,7 @@ echo ""
 PYTHON_VERSION="$($PYTHON_CMD --version 2>&1 | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1 || echo 'N/A')"
 PIP_VERSION="$($PYTHON_CMD -m pip --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1 || echo 'N/A')"
 DOCKER_VERSION="$(docker --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1 || echo 'not available')"
-NODE_VERSION="$(node --version 2>/dev/null || echo 'not detected')"
+NODE_VERSION="$(node --version 2>/dev/null || echo 'not available')"
 JQ_VERSION="$(jq --version 2>/dev/null || echo 'not available')"
 CURL_VERSION="$(curl --version 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1 || echo 'not available')"
 GIT_VERSION="$(git --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1 || echo 'not available')"
