@@ -8,6 +8,7 @@
 #
 
 set -Eeuo pipefail
+trap 'printf "❌ Error on line %s\n" "${BASH_LINENO[0]}" >&2' ERR
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMMON_HELPERS="${SCRIPT_DIR}/scripts/common-codex.sh"
@@ -51,7 +52,8 @@ else
     }
 fi
 
-trap 'echo -e "${RED}❌ Error on line ${BASH_LINENO[0]}${NC}"' ERR
+# Override trap with colored version now that color variables are available
+trap 'echo -e "${RED}❌ Error on line ${BASH_LINENO[0]}${NC}" >&2' ERR
 
 # Optional Logging
 if [[ -n "${LOG_FILE:-}" ]]; then
@@ -238,7 +240,7 @@ if $PREEXISTING_REPO; then
 elif [ ! -d "$REPO_DIR" ]; then
     echo_info "📦 Cloning repository..."
     GIT_CLONE_LOG="$(mktemp /tmp/git-clone.XXXXXX.log)"
-    if retry git clone https://github.com/EcomTree/runpod-comfyui-serverless.git "$REPO_DIR" >"$GIT_CLONE_LOG" 2>&1; then
+    if retry bash -c "git clone https://github.com/EcomTree/runpod-comfyui-serverless.git '$REPO_DIR' >'$GIT_CLONE_LOG' 2>&1"; then
         rm -f "$GIT_CLONE_LOG"
         cd "$REPO_DIR"
         echo_success "Repository cloned"
@@ -263,7 +265,7 @@ echo_info "🌿 Ensuring repository is on main branch..."
 GIT_FETCH_LOG="$(mktemp /tmp/git-fetch.XXXXXX.log)"
 GIT_PULL_LOG="$(mktemp /tmp/git-pull.XXXXXX.log)"
 
-if retry git fetch origin main --tags >"$GIT_FETCH_LOG" 2>&1; then
+if retry bash -c "git fetch origin main --tags >'$GIT_FETCH_LOG' 2>&1"; then
     if git show-ref --verify --quiet refs/heads/main; then
         if ! git checkout main 2>/dev/null; then
             echo_warning "Local main branch broken – recreating from origin/main"
@@ -277,7 +279,7 @@ if retry git fetch origin main --tags >"$GIT_FETCH_LOG" 2>&1; then
         echo_warning "Local changes present – skipping git pull"
         echo_info "Run 'git status' to see changes"
     else
-        if retry git pull --ff-only origin main >"$GIT_PULL_LOG" 2>&1; then
+        if retry bash -c "git pull --ff-only origin main >'$GIT_PULL_LOG' 2>&1"; then
             echo_success "Branch main successfully updated"
         else
             echo_warning "Could not update main – please check manually"
