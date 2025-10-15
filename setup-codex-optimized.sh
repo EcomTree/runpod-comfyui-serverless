@@ -10,10 +10,38 @@
 set -Eeuo pipefail
 trap 'printf "❌ Error on line %s\n" "${BASH_LINENO[0]}" >&2' ERR
 
+REPO_BASENAME="runpod-comfyui-serverless"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-COMMON_HELPERS="${SCRIPT_DIR}/scripts/common-codex.sh"
 
-if [ -f "$COMMON_HELPERS" ]; then
+COMMON_HELPERS=""
+declare -a COMMON_HELPERS_CANDIDATES=(
+    "${SCRIPT_DIR}/scripts/common-codex.sh"
+    "${SCRIPT_DIR}/../scripts/common-codex.sh"
+    "${PWD}/scripts/common-codex.sh"
+    "${PWD}/../scripts/common-codex.sh"
+    "/workspace/${REPO_BASENAME}/scripts/common-codex.sh"
+    "/workspace/scripts/common-codex.sh"
+)
+
+if [[ -n "${CODEX_WORKSPACE:-}" ]]; then
+    COMMON_HELPERS_CANDIDATES+=(
+        "${CODEX_WORKSPACE}/scripts/common-codex.sh"
+        "${CODEX_WORKSPACE}/${REPO_BASENAME}/scripts/common-codex.sh"
+    )
+fi
+
+if [[ -n "${COMMON_HELPERS_PATH:-}" ]]; then
+    COMMON_HELPERS_CANDIDATES+=("${COMMON_HELPERS_PATH}")
+fi
+
+for candidate in "${COMMON_HELPERS_CANDIDATES[@]}"; do
+    if [[ -n "$candidate" && -f "$candidate" ]]; then
+        COMMON_HELPERS="$candidate"
+        break
+    fi
+done
+
+if [[ -n "$COMMON_HELPERS" && -f "$COMMON_HELPERS" ]]; then
     # shellcheck disable=SC1090
     source "$COMMON_HELPERS"
 else
