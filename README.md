@@ -55,6 +55,14 @@ Only GPUs with **Ada Lovelace, Hopper, or Blackwell architecture** are supported
 
 ## 🛠️ Installation
 
+> **Codex Shortcut:**
+>
+> ```bash
+> curl -fsSL https://raw.githubusercontent.com/EcomTree/runpod-comfyui-serverless/main/setup-codex-optimized.sh | bash
+> ```
+>
+> Dieser Befehl richtet alles in Codex automatisiert ein.
+
 1. **Clone Repository**
    ```bash
    git clone https://github.com/EcomTree/runpod-comfyui-serverless.git
@@ -63,7 +71,7 @@ Only GPUs with **Ada Lovelace, Hopper, or Blackwell architecture** are supported
 
 2. **Build Docker Image**
    ```bash
-   docker build -t ecomtree/comfyui-serverless:latest -f Serverless.Dockerfile .
+   docker build -t ecomtree/comfyui-serverless:latest -f Dockerfile .
    ```
 
 3. **Push Image to Docker Hub**
@@ -252,7 +260,7 @@ curl -X POST "$API_URL" \
 
 ```
 ├── rp_handler.py          # Main handler for RunPod
-├── Serverless.Dockerfile  # Docker image definition
+├── Dockerfile             # Serverless-ready Docker image definition
 ├── .gitignore            # Git ignore rules
 └── README.md             # This file
 ```
@@ -270,7 +278,7 @@ curl -X POST "$API_URL" \
 
 1. **Build and push Docker image**
    ```bash
-   docker build -t ecomtree/comfyui-serverless:latest -f Serverless.Dockerfile .
+   docker build -t ecomtree/comfyui-serverless:latest -f Dockerfile .
    docker push ecomtree/comfyui-serverless:latest
    ```
 

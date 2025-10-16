@@ -15,7 +15,7 @@ This document describes how to set up the RunPod ComfyUI Serverless repo in the 
 
 ```bash
 # Codex Setup for RunPod ComfyUI Serverless
-curl -fsSL https://raw.githubusercontent.com/EcomTree/runpod-comfyui-serverless/main/setup-codex.sh | bash
+curl -fsSL https://raw.githubusercontent.com/EcomTree/runpod-comfyui-serverless/main/setup-codex-optimized.sh | bash
 ```
 
 OR (if you want to test a branch):
@@ -24,8 +24,8 @@ OR (if you want to test a branch):
 # Run Setup Script
 git clone https://github.com/EcomTree/runpod-comfyui-serverless.git /workspace/runpod-comfyui-serverless
 cd /workspace/runpod-comfyui-serverless
-chmod +x setup-codex.sh
-./setup-codex.sh
+chmod +x setup-codex-optimized.sh
+./setup-codex-optimized.sh
 ```
 
 2. **Set Environment Variables (Optional):**
@@ -118,9 +118,9 @@ The setup script is also referenced in the Dockerfile as "maintenance script".
 **For RunPod Serverless Container:**
 
 ```dockerfile
-# Optionally add to Serverless.Dockerfile:
-COPY setup-codex.sh /workspace/setup-codex.sh
-RUN chmod +x /workspace/setup-codex.sh && /workspace/setup-codex.sh
+# Optionally add to Dockerfile:
+COPY setup-codex-optimized.sh /workspace/setup-codex-optimized.sh
+RUN chmod +x /workspace/setup-codex-optimized.sh && /workspace/setup-codex-optimized.sh
 ```
 
 ## 🐛 Troubleshooting
@@ -138,7 +138,7 @@ In Codex there are no RunPod Network Volumes. Use S3 Storage instead.
 ```bash
 # Run setup again:
 cd /workspace/runpod-comfyui-serverless
-./setup-codex.sh
+./setup-codex-optimized.sh
 ```
 
 ## 🎯 Next Steps
@@ -153,7 +153,7 @@ After successful setup:
 
 2. **Docker Build (for Deployment):**
    ```bash
-   docker build -t ecomtree/comfyui-serverless:latest -f Serverless.Dockerfile .
+   docker build -t ecomtree/comfyui-serverless:latest -f Dockerfile .
    ```
 
 3. **RunPod Deployment:**

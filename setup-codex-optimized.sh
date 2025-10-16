@@ -7,11 +7,47 @@
 # Version: 3.0 (State-of-the-Art Optimized)
 #
 
-set -Eeuo pipefail
-trap 'printf "❌ Error on line %s\n" "${BASH_LINENO[0]}" >&2' ERR
+set -Ee
+set -o pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_BASENAME="${REPO_BASENAME:-$(basename "$SCRIPT_DIR")}"
+DEFAULT_REPO_NAME="runpod-comfyui-serverless"
+
+get_script_dir() {
+    local source="${BASH_SOURCE[0]:-}"
+
+    if [[ -z "$source" || "$source" == "bash" ]]; then
+        source="${0:-}"
+    fi
+
+    if [[ -z "$source" || "$source" == "bash" ]]; then
+        printf '%s\n' "$(pwd)"
+        return
+    fi
+
+    local dir
+    dir="$(dirname "$source" 2>/dev/null || printf '.\n')"
+
+    cd "$dir" 2>/dev/null && pwd || pwd
+}
+
+SCRIPT_DIR="$(get_script_dir)"
+
+if [[ -z "${REPO_BASENAME:-}" ]]; then
+    if [[ -n "${SCRIPT_DIR:-}" ]]; then
+        REPO_BASENAME="$(basename "${SCRIPT_DIR}")"
+    elif [[ -n "${0:-}" && "${0:-}" != "bash" && -f "${0:-}" ]]; then
+        REPO_BASENAME="$(basename "$(dirname "${0}")")"
+    else
+        REPO_BASENAME="${DEFAULT_REPO_NAME}"
+    fi
+fi
+
+if [[ -z "${REPO_BASENAME}" || "${REPO_BASENAME}" == "." || "${REPO_BASENAME}" == "/" ]]; then
+    REPO_BASENAME="${DEFAULT_REPO_NAME}"
+fi
+
+set -u
+trap 'printf "❌ Error on line %s\n" "${BASH_LINENO[0]}" >&2' ERR
 
 # Common helper script resolution order:
 # 1. COMMON_HELPERS_PATH environment variable (if set, highest priority)
@@ -106,7 +142,7 @@ PYTHON_IMPORT_NAMES=("runpod" "requests" "boto3" "PIL" "numpy")
 
 # Check if we're already in the target repository
 # Compare against the expected repo name (hardcoded) to avoid self-match with dynamic REPO_BASENAME
-EXPECTED_REPO_NAME="${EXPECTED_REPO_NAME:-runpod-comfyui-serverless}"
+EXPECTED_REPO_NAME="${EXPECTED_REPO_NAME:-$DEFAULT_REPO_NAME}"
 if [[ "$(basename "$SCRIPT_DIR")" == "$EXPECTED_REPO_NAME" ]]; then
     PREEXISTING_REPO=true
 else
@@ -301,28 +337,32 @@ echo_info "🌿 Ensuring repository is on main branch..."
 GIT_FETCH_LOG="$(mktemp /tmp/git-fetch.XXXXXX.log)"
 GIT_PULL_LOG="$(mktemp /tmp/git-pull.XXXXXX.log)"
 
-if retry bash -c "git fetch origin main --tags >'$GIT_FETCH_LOG' 2>&1"; then
-    if git show-ref --verify --quiet refs/heads/main; then
-        if ! git checkout main 2>/dev/null; then
-            echo_warning "Local main branch broken – recreating from origin/main"
-            git checkout -B main origin/main 2>&1 | grep -v "^Switched" || true
-        fi
+TARGET_BRANCH="${EXPECTED_REPO_BRANCH:-main}"
+
+if retry bash -c "git fetch origin ${TARGET_BRANCH} --tags >'$GIT_FETCH_LOG' 2>&1"; then
+    if git rev-parse --verify --quiet HEAD >/dev/null 2>&1; then
+        CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+        echo_info "📦 Repository currently on branch: ${CURRENT_BRANCH}"
     else
-        git checkout -B main origin/main 2>&1 | grep -v "^Switched" || true
+        if git show-ref --verify --quiet "refs/heads/${TARGET_BRANCH}"; then
+            git checkout "${TARGET_BRANCH}" 2>&1 | grep -v "^Switched" || true
+        else
+            git checkout -B "${TARGET_BRANCH}" "origin/${TARGET_BRANCH}" 2>&1 | grep -v "^Switched" || true
+        fi
     fi
 
     if git status --short --porcelain | grep -q ""; then
         echo_warning "Local changes present – skipping git pull"
         echo_info "Run 'git status' to see changes"
     else
-        if retry bash -c "git pull --ff-only origin main >'$GIT_PULL_LOG' 2>&1"; then
-            echo_success "Branch main successfully updated"
+        if retry bash -c "git pull --ff-only origin ${TARGET_BRANCH} >'$GIT_PULL_LOG' 2>&1"; then
+            echo_success "Branch ${TARGET_BRANCH} successfully updated"
         else
-            echo_warning "Could not update main – please check manually"
+            echo_warning "Could not update ${TARGET_BRANCH} – please check manually"
         fi
     fi
 else
-    echo_warning "Fetch from origin/main failed – working with existing copy"
+    echo_warning "Fetch from origin/${TARGET_BRANCH} failed – working with existing copy"
 fi
 rm -f "$GIT_FETCH_LOG" "$GIT_PULL_LOG"
 
@@ -368,6 +408,9 @@ validate_python_packages || {
 # ============================================================
 echo_info "🔧 Ensuring system tools (optional)..."
 ensure_system_packages jq curl git || echo_info "Some system tools could not be installed (non-critical)"
+if ! command_exists jq; then
+    echo_warning "jq missing - consider installing manually for JSON-friendly logs"
+fi
 
 # ============================================================
 # 6. Environment Variables Setup
@@ -517,7 +560,7 @@ else
 fi
 
 # Check if all required files exist
-REQUIRED_FILES=("rp_handler.py" "requirements.txt" "Serverless.Dockerfile" "README.md")
+REQUIRED_FILES=("rp_handler.py" "requirements.txt" "Dockerfile" "README.md")
 for file in "${REQUIRED_FILES[@]}"; do
     if [ -f "$file" ]; then
         echo_success "✓ $file"
@@ -561,7 +604,7 @@ echo_info "📝 Next steps:"
 echo "   1. Edit .env and configure your settings (especially S3 for Codex)"
 echo "   2. Test the handler: $PYTHON_CMD -c 'from rp_handler import handler'"
 echo "   3. For local testing: $PYTHON_CMD rp_handler.py"
-echo "   4. For Docker build: docker build -f Serverless.Dockerfile ."
+echo "   4. For Docker build: docker build -f Dockerfile ."
 echo ""
 
 if [ "$IN_CODEX" = true ]; then

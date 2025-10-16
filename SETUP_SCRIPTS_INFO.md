@@ -2,7 +2,7 @@
 
 This repository contains a setup script for Codex Web UI environment configuration.
 
-## 🌐 setup-codex.sh - For Codex Web UI
+## 🌐 setup-codex-optimized.sh - For Codex Web UI
 
 **Use this when:** Working with the project in the **Codex Web UI**
 
@@ -17,22 +17,22 @@ This repository contains a setup script for Codex Web UI environment configurati
 
 **Option A - Direct from repo:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/EcomTree/runpod-comfyui-serverless/main/setup-codex.sh | bash
+curl -fsSL https://raw.githubusercontent.com/EcomTree/runpod-comfyui-serverless/main/setup-codex-optimized.sh | bash
 ```
 
 **Option B - After cloning:**
 ```bash
 git clone https://github.com/EcomTree/runpod-comfyui-serverless.git /workspace/runpod-comfyui-serverless
 cd /workspace/runpod-comfyui-serverless
-chmod +x setup-codex.sh
-./setup-codex.sh
+chmod +x setup-codex-optimized.sh
+./setup-codex-optimized.sh
 ```
 
 ### Add to Codex Web UI:
 
 Under **"Setup Script"** → **"Manual"**:
 ```bash
-git clone https://github.com/EcomTree/runpod-comfyui-serverless.git /workspace/runpod-comfyui-serverless && cd /workspace/runpod-comfyui-serverless && chmod +x setup-codex.sh && ./setup-codex.sh
+git clone https://github.com/EcomTree/runpod-comfyui-serverless.git /workspace/runpod-comfyui-serverless && cd /workspace/runpod-comfyui-serverless && chmod +x setup-codex-optimized.sh && ./setup-codex-optimized.sh
 ```
 
 📖 **Complete guide:** See `CODEX_SETUP.md`
@@ -72,7 +72,7 @@ For local development on your Mac/PC, you can:
    python3 -m py_compile rp_handler.py
    
    # Or build Docker image
-   docker build -t comfyui-serverless -f Serverless.Dockerfile .
+   docker build -t comfyui-serverless -f Dockerfile .
    ```
 
 ---
@@ -81,7 +81,7 @@ For local development on your Mac/PC, you can:
 
 | Scenario | Approach | Reason |
 |----------|----------|--------|
-| 🌐 Codex Web UI | `setup-codex.sh` | Fast, lightweight, optimized for cloud |
+| 🌐 Codex Web UI | `setup-codex-optimized.sh` | Fast, lightweight, optimized for cloud |
 | 💻 Local Development | Manual setup | Full control, custom configuration |
 | 🐳 Docker Build Only | None needed | Dockerfile has everything |
 | 🚀 RunPod Serverless | None needed | Container deployed directly |
@@ -97,11 +97,11 @@ For local development on your Mac/PC, you can:
 
 ## 🆘 Troubleshooting
 
-### Codex: "setup-codex.sh not found"
+### Codex: "setup-codex-optimized.sh not found"
 ```bash
 # Make sure you're in the right directory:
 cd /workspace/runpod-comfyui-serverless
-ls -la setup-codex.sh
+ls -la setup-codex-optimized.sh
 
 # If not present, clone again:
 git clone https://github.com/EcomTree/runpod-comfyui-serverless.git
@@ -109,8 +109,8 @@ git clone https://github.com/EcomTree/runpod-comfyui-serverless.git
 
 ### Local: "Permission denied"
 ```bash
-chmod +x setup-codex.sh
-./setup-codex.sh
+chmod +x setup-codex-optimized.sh
+./setup-codex-optimized.sh
 ```
 
 ### "Python version too old"
