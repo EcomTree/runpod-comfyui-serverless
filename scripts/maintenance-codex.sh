@@ -7,7 +7,19 @@
 set -euo pipefail
 
 # Source common helpers
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-""}")" && pwd)"
+# Robustly determine the directory of this script
+get_script_dir() {
+    local src="${BASH_SOURCE[0]}"
+    if [[ -n "$src" && -e "$src" ]]; then
+        cd "$(dirname "$src")" && pwd
+    elif [[ -n "$0" && -e "$0" ]]; then
+        cd "$(dirname "$0")" && pwd
+    else
+        echo "Error: Unable to determine script directory." >&2
+        exit 1
+    fi
+}
+SCRIPT_DIR="$(get_script_dir)"
 
 # Check if helper script exists and source it, otherwise use inline fallbacks
 if [[ -f "${SCRIPT_DIR}/common-codex.sh" ]]; then
