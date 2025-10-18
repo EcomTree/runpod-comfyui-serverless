@@ -433,9 +433,6 @@ validate_python_packages || {
 # ============================================================
 echo_info "🔧 Ensuring system tools (optional)..."
 ensure_system_packages jq curl git || echo_info "Some system tools could not be installed (non-critical)"
-if ! command_exists jq; then
-    echo_warning "jq missing - consider installing manually for JSON-friendly logs"
-fi
 
 # ============================================================
 # 6. Environment Variables Setup
