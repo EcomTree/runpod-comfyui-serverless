@@ -345,7 +345,7 @@ GIT_PULL_LOG="$(mktemp /tmp/git-pull.XXXXXX.log)"
 TARGET_BRANCH="${EXPECTED_REPO_BRANCH:-main}"
 
 if retry bash -c "git fetch origin ${TARGET_BRANCH} --tags >'$GIT_FETCH_LOG' 2>&1"; then
-    if git rev-parse --verify HEAD >/dev/null 2>&1; then
+    if git rev-list -n 1 HEAD >/dev/null 2>&1; then
         CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
         echo_info "📦 Repository currently on branch: ${CURRENT_BRANCH}"
         
