@@ -198,7 +198,8 @@ push_changes() {
             git push origin "$current_branch"
             log_success "Changes pushed to origin"
         else
-            log_success "No new commits to push"
+    # Check if the remote branch exists
+    if git ls-remote --exit-code --heads origin "$current_branch" > /dev/null 2>&1; then
         fi
     else
         # Remote branch doesn't exist - first push, set upstream
