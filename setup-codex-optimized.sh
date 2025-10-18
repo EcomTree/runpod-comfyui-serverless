@@ -7,7 +7,10 @@
 # Version: 3.0 (State-of-the-Art Optimized)
 #
 
+# Bash strict mode: exit on error, pipefail, inherit ERR trap
+# Note: -u (nounset) is set later (line 58) to allow optional variable checks during initialization
 set -Eeo pipefail
+
 # Default repository name used when REPO_BASENAME cannot be determined from directory structure
 DEFAULT_REPO_NAME="runpod-comfyui-serverless"
 
@@ -355,8 +358,8 @@ if retry bash -c "git fetch origin ${TARGET_BRANCH} --tags >'$GIT_FETCH_LOG' 2>&
         CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo detached)"
         echo_info "📦 Repository currently on branch: ${CURRENT_BRANCH}"
         
-        # Check if we need to switch to the target branch
-        if [[ "${CURRENT_BRANCH}" != "${TARGET_BRANCH}" ]]; then
+        # Check if we need to switch to the target branch (skip if detached)
+        if [[ "${CURRENT_BRANCH}" != "detached" && "${CURRENT_BRANCH}" != "${TARGET_BRANCH}" ]]; then
             echo_info "Switching from ${CURRENT_BRANCH} to ${TARGET_BRANCH}..."
             if git show-ref --verify --quiet "refs/heads/${TARGET_BRANCH}"; then
                 if ! git checkout "${TARGET_BRANCH}" 2>/dev/null; then
