@@ -1,24 +1,95 @@
-# Core dependencies for RunPod ComfyUI Serverless Handler
-runpod>=1.7.0
-requests>=2.31.0
-boto3>=1.34.0
+# =============================================================================
+# Codex Coding Background Agent Dependencies
+# =============================================================================
 
-# Image processing
-Pillow>=10.0.0
-numpy>=1.24.0
+# Core Python packages
+python-dotenv>=1.0.0
+click>=8.1.0
+rich>=13.0.0
+typer>=0.9.0
 
-# Additional utilities (used in ComfyUI and handler)
-pyyaml>=6.0
-scipy>=1.11.0
-opencv-python>=4.8.0
+# Git and repository management
+GitPython>=3.1.0
+pygit2>=1.12.0
 
-# ComfyUI additional dependencies (matching Dockerfile)
-librosa>=0.10.0
-soundfile>=0.12.0
-av>=10.0.0
-moviepy>=1.0.3
+# Code analysis and quality
+flake8>=6.0.0
+black>=23.0.0
+isort>=5.12.0
+mypy>=1.5.0
+pylint>=2.17.0
+bandit>=1.7.0
+safety>=2.3.0
 
-# Development and testing
+# Testing framework
 pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.0
 pytest-asyncio>=0.21.0
 
+# Documentation
+sphinx>=7.0.0
+sphinx-rtd-theme>=1.3.0
+mkdocs>=1.5.0
+mkdocs-material>=9.0.0
+
+# File and text processing
+pathlib2>=2.3.0
+watchdog>=3.0.0
+chardet>=5.1.0
+
+# JSON and YAML processing
+pyyaml>=6.0
+jsonschema>=4.17.0
+
+# HTTP and API clients
+requests>=2.31.0
+httpx>=0.24.0
+aiohttp>=3.8.0
+
+# Data processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Configuration management
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# Logging and monitoring
+structlog>=23.0.0
+prometheus-client>=0.17.0
+
+# Security
+cryptography>=41.0.0
+keyring>=24.0.0
+
+# Development utilities
+ipython>=8.14.0
+jupyter>=1.0.0
+notebook>=6.5.0
+
+# Code generation and templates
+jinja2>=3.1.0
+cookiecutter>=2.1.0
+
+# Database (optional)
+sqlalchemy>=2.0.0
+alembic>=1.11.0
+
+# Async support
+asyncio-mqtt>=0.13.0
+aioredis>=2.0.0
+
+# Performance profiling
+memory-profiler>=0.60.0
+line-profiler>=4.1.0
+py-spy>=0.3.0
+
+# Container and deployment
+docker>=6.1.0
+kubernetes>=27.0.0
+
+# Cloud services (optional)
+boto3>=1.28.0
+azure-identity>=1.14.0
+google-cloud-storage>=2.10.0
