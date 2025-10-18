@@ -35,61 +35,104 @@ class WorkflowProcessor:
         workflow = copy.deepcopy(workflow)
         randomized_count = 0
 
-        def _generate_random_seed():
-            """
-            Generate a random seed value using getrandbits for better performance.
-            
-            Returns:
-                int: Random seed in range 0 to 2^31-1 (2,147,483,647)
-                
-            Note:
-                Uses 31 bits (not 32) to ensure compatibility with signed 32-bit integers
-                used by ComfyUI nodes. This avoids potential overflow issues with nodes
-                that expect non-negative integers within the signed int32 range.
-            """
-            # Use getrandbits(31) for signed 32-bit int compatibility and performance
-            return random.getrandbits(31)
 
-        def _randomize_seeds_in_obj(obj, node_id=None, path=""):
-            """Recursively traverse and randomize all seed values in nested structures"""
-            nonlocal randomized_count
 
-            if isinstance(obj, dict):
-                for key, value in obj.items():
-                    current_path = f"{path}.{key}" if path else key
-                    if key == "seed" and isinstance(value, (int, float)):
-                        # Found a seed parameter - randomize it
-                        old_seed = value
-                        new_seed = _generate_random_seed()
-                        obj[key] = new_seed
-                        randomized_count += 1
 
-                        if node_id is not None:
-                            print(f"🎲 Node {node_id}: Randomized seed at {current_path}: {old_seed} → {new_seed}")
-                        else:
-                            print(f"🎲 Randomized seed at {current_path}: {old_seed} → {new_seed}")
-                    else:
-                        # Recursively process nested structures
-                        _randomize_seeds_in_obj(value, node_id=node_id, path=current_path)
 
-            elif isinstance(obj, list):
-                for idx, item in enumerate(obj):
-                    current_path = f"{path}[{idx}]" if path else f"[{idx}]"
-                    _randomize_seeds_in_obj(item, node_id=node_id, path=current_path)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         # Walk through all nodes in the workflow
+        randomized_count = [0]  # Use a list to allow mutation in recursive calls
         for node_id, node_data in workflow.items():
             if isinstance(node_data, dict) and "inputs" in node_data:
                 inputs = node_data["inputs"]
-                _randomize_seeds_in_obj(inputs, node_id=node_id, path="inputs")
+                self._randomize_seeds_in_obj(inputs, node_id=node_id, path="inputs", randomized_count=randomized_count)
 
-        if randomized_count > 0:
-            print(f"✅ Randomized {randomized_count} seed(s) in workflow")
+        if randomized_count[0] > 0:
+            print(f"✅ Randomized {randomized_count[0]} seed(s) in workflow")
         else:
             print("ℹ️ No seeds found in workflow to randomize")
 
         return workflow
 
+    def _generate_random_seed(self):
+        """
+        Generate a random seed value using getrandbits for better performance.
+        
+        Returns:
+            int: Random seed in range 0 to 2^31-1 (2,147,483,647)
+            
+        Note:
+            Uses 31 bits (not 32) to ensure compatibility with signed 32-bit integers
+            used by ComfyUI nodes. This avoids potential overflow issues with nodes
+            that expect non-negative integers within the signed int32 range.
+        """
+        # Use getrandbits(31) for signed 32-bit int compatibility and performance
+        return random.getrandbits(31)
+
+    def _randomize_seeds_in_obj(self, obj, node_id=None, path="", randomized_count=None):
+        """Recursively traverse and randomize all seed values in nested structures"""
+        if randomized_count is None:
+            randomized_count = [0]
+
+        if isinstance(obj, dict):
+            for key, value in obj.items():
+                current_path = f"{path}.{key}" if path else key
+                if key == "seed" and isinstance(value, (int, float)):
+                    # Found a seed parameter - randomize it
+                    old_seed = value
+                    new_seed = self._generate_random_seed()
+                    obj[key] = new_seed
+                    randomized_count[0] += 1
+
+                    if node_id is not None:
+                        print(f"🎲 Node {node_id}: Randomized seed at {current_path}: {old_seed} → {new_seed}")
+                    else:
+                        print(f"🎲 Randomized seed at {current_path}: {old_seed} → {new_seed}")
+                else:
+                    # Recursively process nested structures
+                    self._randomize_seeds_in_obj(value, node_id=node_id, path=current_path, randomized_count=randomized_count)
+
+        elif isinstance(obj, list):
+            for idx, item in enumerate(obj):
+                current_path = f"{path}[{idx}]" if path else f"[{idx}]"
+                self._randomize_seeds_in_obj(item, node_id=node_id, path=current_path, randomized_count=randomized_count)
     def extract_checkpoint_names(self, object_info: Dict[str, Any]) -> List[str]:
         """Safely extract checkpoint names from ComfyUI object_info response"""
         try:
