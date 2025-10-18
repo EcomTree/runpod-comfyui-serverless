@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
+"""
+RunPod Handler for Codex Coding Background Agent
 
-import runpod
+This handler is designed for a coding background agent that performs
+code analysis, maintenance, and development tasks rather than ComfyUI workflows.
+"""
+
+import asyncio
 import time
 import traceback
 import uuid
@@ -9,139 +15,63 @@ from typing import Dict, Any
 
 # Import our modular components
 from src.config import config
-from src.comfyui_manager import comfyui_manager
-from src.s3_handler import s3_handler
-from src.workflow_processor import workflow_processor
+from src.code_analyzer import CodeAnalyzer
+from src.git_manager import GitManager
+from src.project_manager import ProjectManager
+from src.quality_checker import QualityChecker
 
 
 def handler(event: Dict[str, Any]) -> Dict[str, Any]:
     """
-    RunPod handler for ComfyUI workflows.
+    RunPod handler for Codex Coding Background Agent.
 
     Args:
-        event: RunPod event containing workflow and metadata
+        event: RunPod event containing task and metadata
 
     Returns:
         Dict containing results or error information
     """
-    print("🚀 Handler started - processing ComfyUI workflow...")
+    print("🚀 Codex Agent Handler started - processing coding task...")
     print(f"📋 Event Type: {event.get('type', 'unknown')}")
 
     # Handle heartbeat events
     if event.get("type") == "heartbeat":
-        print("💓 Heartbeat received - worker stays active")
+        print("💓 Heartbeat received - agent stays active")
         return {"status": "ok"}
 
     try:
-        # Start ComfyUI server if needed
-        if not comfyui_manager.start_server_if_needed():
-            return {"error": "ComfyUI could not be started"}
+        # Initialize components
+        code_analyzer = CodeAnalyzer(config)
+        git_manager = GitManager(config)
+        project_manager = ProjectManager(config)
+        quality_checker = QualityChecker(config)
 
-        # Extract and validate workflow
-        workflow = event.get("input", {}).get("workflow")
-        if not workflow:
-            return {"error": "No 'workflow' found in input"}
-
-        # Randomize seeds if enabled
-        workflow = workflow_processor.randomize_seeds(workflow)
-
-        # Execute workflow
-        result = comfyui_manager.run_workflow(workflow)
-        if not result:
-            return {"error": "Workflow could not be executed"}
-
-        # Find generated images
-        workflow_start_time = result.get("_workflow_start_time", time.time() - config.get_workflow_config()['default_workflow_duration'])
-        image_paths = comfyui_manager.find_generated_images(result, workflow_start_time)
-
-        if not image_paths:
-            return {"error": "No generated images found"}
-
-        # Generate job_id for organizing uploads
+        # Extract task information
+        task_type = event.get("input", {}).get("task_type", "analyze")
+        task_data = event.get("input", {}).get("task_data", {})
+        
+        # Generate job_id for organizing results
         job_id = event.get("id", str(uuid.uuid4()))
 
-        # Process images with S3 and/or volume storage
-        output_urls = []
-        volume_paths = []
-        failed_uploads = []
-        s3_success_count = 0
+        # Process different task types
+        if task_type == "analyze":
+            result = asyncio.run(_handle_analysis_task(code_analyzer, task_data, job_id))
+        elif task_type == "quality_check":
+            result = asyncio.run(_handle_quality_check_task(quality_checker, task_data, job_id))
+        elif task_type == "git_operation":
+            result = asyncio.run(_handle_git_task(git_manager, task_data, job_id))
+        elif task_type == "maintenance":
+            result = asyncio.run(_handle_maintenance_task(project_manager, task_data, job_id))
+        else:
+            result = {"error": f"Unknown task type: {task_type}"}
 
-        for img_path in image_paths:
-            # Always save to volume as backup
-            volume_result = s3_handler.copy_to_volume(img_path)
-            if volume_result["success"]:
-                volume_paths.append(volume_result["path"])
+        # Add common metadata
+        result["job_id"] = job_id
+        result["task_type"] = task_type
+        result["timestamp"] = time.time()
 
-            # Upload to S3 if configured
-            if config.is_s3_configured():
-                s3_result = s3_handler.upload_file(img_path, job_id)
-                if s3_result["success"]:
-                    output_urls.append(s3_result["url"])
-                    s3_success_count += 1
-                else:
-                    failed_uploads.append({
-                        "source": str(img_path),
-                        "error": s3_result["error"]
-                    })
-                    if volume_result["success"]:
-                        output_urls.append(volume_result["path"])
-                        print(f"⚠️ S3 upload failed for {img_path.name}, using volume path as fallback")
-            else:
-                # No S3, use volume paths as URLs
-                if volume_result["success"]:
-                    output_urls.append(volume_result["path"])
-
-        # Check if we have any output
-        if not output_urls:
-            # Build clear error message based on storage configuration
-            if config.is_s3_configured():
-                error_details = "; ".join([f["error"] for f in failed_uploads])
-                error_message = f"Failed to upload all images to S3 and no volume paths available: {error_details}"
-            else:
-                error_message = "Failed to save all images to volume"
-            return {"error": error_message}
-
-        # Determine storage type
-        actual_storage_type = "s3" if (config.is_s3_configured() and s3_success_count > 0) else "volume"
-
-        # Build response
-        response = {
-            "links": output_urls,
-            "total_images": len(output_urls),
-            "job_id": job_id,
-            "storage_type": actual_storage_type,
-        }
-
-        # Add S3-specific info if S3 was used
-        if config.is_s3_configured() and s3_success_count > 0:
-            s3_config = config.get_s3_config()
-            response["s3_bucket"] = s3_config["bucket"]
-            response["local_paths"] = [str(p) for p in image_paths]
-
-        # Add volume paths if available
-        if volume_paths:
-            response["volume_paths"] = volume_paths
-
-        # Add warnings for failed uploads
-        if failed_uploads:
-            response["warnings"] = {
-                "failed_uploads": len(failed_uploads),
-                "details": failed_uploads
-            }
-            print(f"⚠️ {len(failed_uploads)} image(s) failed to upload")
-
-        # Cleanup temp files if enabled
-        comfyui_manager.cleanup_temp_files(image_paths)
-
-        print(f"✅ Handler successful! {len(output_urls)} images processed")
-        if actual_storage_type == "s3":
-            s3_config = config.get_s3_config()
-            print(f"☁️ Images uploaded to S3: {s3_config['bucket']}")
-
-        if volume_paths:
-            print(f"📦 Images saved to volume: {volume_paths}")
-
-        return response
+        print(f"✅ Handler successful! Task '{task_type}' completed")
+        return result
 
     except Exception as e:
         print(f"❌ Handler Error: {e}")
@@ -149,5 +79,155 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
         return {"error": f"Handler Error: {str(e)}"}
 
 
+async def _handle_analysis_task(code_analyzer: CodeAnalyzer, task_data: Dict[str, Any], job_id: str) -> Dict[str, Any]:
+    """Handle code analysis tasks."""
+    try:
+        path = task_data.get("path", ".")
+        recursive = task_data.get("recursive", True)
+        
+        if recursive:
+            results = await code_analyzer.analyze_directory(path)
+        else:
+            results = [await code_analyzer.analyze_file(path)]
+        
+        # Aggregate results
+        total_issues = sum(len(result.issues) for result in results)
+        total_files = len(results)
+        total_lines = sum(result.lines_of_code for result in results)
+        total_functions = sum(result.functions for result in results)
+        total_classes = sum(result.classes for result in results)
+        
+        return {
+            "success": True,
+            "analysis_results": {
+                "total_files": total_files,
+                "total_issues": total_issues,
+                "total_lines_of_code": total_lines,
+                "total_functions": total_functions,
+                "total_classes": total_classes,
+                "files_analyzed": [
+                    {
+                        "file_path": result.file_path,
+                        "issues": len(result.issues),
+                        "lines_of_code": result.lines_of_code,
+                        "complexity": result.complexity,
+                        "functions": result.functions,
+                        "classes": result.classes
+                    }
+                    for result in results
+                ]
+            }
+        }
+    except Exception as e:
+        return {"success": False, "error": f"Analysis failed: {e}"}
+
+
+async def _handle_quality_check_task(quality_checker: QualityChecker, task_data: Dict[str, Any], job_id: str) -> Dict[str, Any]:
+    """Handle code quality check tasks."""
+    try:
+        report = await quality_checker.run_full_check()
+        
+        return {
+            "success": True,
+            "quality_report": {
+                "total_issues": len(report.issues),
+                "test_passed": report.test_result.passed if report.test_result else False,
+                "test_count": report.test_result.total_count if report.test_result else 0,
+                "coverage_percentage": report.coverage_percentage,
+                "complexity_score": report.complexity_score,
+                "security_issues": len(report.security_issues),
+                "issues_by_severity": {
+                    "error": len([i for i in report.issues if i.severity == "error"]),
+                    "warning": len([i for i in report.issues if i.severity == "warning"]),
+                    "info": len([i for i in report.issues if i.severity == "info"])
+                }
+            }
+        }
+    except Exception as e:
+        return {"success": False, "error": f"Quality check failed: {e}"}
+
+
+async def _handle_git_task(git_manager: GitManager, task_data: Dict[str, Any], job_id: str) -> Dict[str, Any]:
+    """Handle git operation tasks."""
+    try:
+        operation = task_data.get("operation", "status")
+        
+        if operation == "status":
+            status = await git_manager.get_status()
+            return {
+                "success": True,
+                "git_status": {
+                    "is_git_repo": status.is_git_repo,
+                    "current_branch": status.current_branch,
+                    "has_changes": status.has_changes,
+                    "staged_files": status.staged_files,
+                    "unstaged_files": status.unstaged_files,
+                    "untracked_files": status.untracked_files,
+                    "ahead_count": status.ahead_count,
+                    "behind_count": status.behind_count
+                }
+            }
+        elif operation == "commit":
+            message = task_data.get("message", "Codex agent commit")
+            files = task_data.get("files", [])
+            success = await git_manager.commit(message, files)
+            return {"success": success, "message": f"Commit {'successful' if success else 'failed'}"}
+        elif operation == "push":
+            branch = task_data.get("branch")
+            success = await git_manager.push(branch)
+            return {"success": success, "message": f"Push {'successful' if success else 'failed'}"}
+        else:
+            return {"success": False, "error": f"Unknown git operation: {operation}"}
+    
+    except Exception as e:
+        return {"success": False, "error": f"Git operation failed: {e}"}
+
+
+async def _handle_maintenance_task(project_manager: ProjectManager, task_data: Dict[str, Any], job_id: str) -> Dict[str, Any]:
+    """Handle project maintenance tasks."""
+    try:
+        report = await project_manager.run_maintenance()
+        
+        return {
+            "success": True,
+            "maintenance_report": {
+                "tasks_completed": len(report.tasks_completed),
+                "tasks_failed": len(report.tasks_failed),
+                "total_duration": report.total_duration,
+                "completed_tasks": [
+                    {
+                        "name": task.name,
+                        "description": task.description,
+                        "duration": (task.end_time - task.start_time).total_seconds() if task.end_time and task.start_time else 0
+                    }
+                    for task in report.tasks_completed
+                ],
+                "failed_tasks": [
+                    {
+                        "name": task.name,
+                        "description": task.description,
+                        "error": task.error
+                    }
+                    for task in report.tasks_failed
+                ]
+            }
+        }
+    except Exception as e:
+        return {"success": False, "error": f"Maintenance failed: {e}"}
+
+
 if __name__ == "__main__":
-    runpod.serverless.start({"handler": handler})
+    # For local testing
+    test_event = {
+        "type": "test",
+        "input": {
+            "task_type": "analyze",
+            "task_data": {
+                "path": ".",
+                "recursive": True
+            }
+        }
+    }
+    
+    result = handler(test_event)
+    print(f"Test result: {result}")
