@@ -42,11 +42,7 @@ SCRIPT_DIR="$(get_script_dir)"
 if [[ -z "${REPO_BASENAME:-}" ]]; then
     # SCRIPT_DIR is always set (at minimum to '.'), so we can use it directly
     REPO_BASENAME="$(basename "${SCRIPT_DIR}")"
-    
-    # Fallback if basename returns invalid values
-    if [[ "${REPO_BASENAME}" == "." || "${REPO_BASENAME}" == "/" ]]; then
-        REPO_BASENAME="${DEFAULT_REPO_NAME}"
-    fi
+    [[ -z "${REPO_BASENAME}" || "${REPO_BASENAME}" =~ ^[./]$ ]] && REPO_BASENAME="${DEFAULT_REPO_NAME}"
 fi
 
 set -u
