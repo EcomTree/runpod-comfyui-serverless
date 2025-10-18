@@ -48,8 +48,8 @@ class WorkflowProcessor:
                 that expect positive integers within the signed int32 range.
             """
             # getrandbits(31) is used primarily to ensure compatibility with signed 32-bit integers,
-            # avoiding overflow issues with nodes expecting positive int32 values. It also has slight
-            # performance benefits over randint(0, 2147483647) since it directly generates the required bits.
+            # avoiding overflow issues with nodes expecting non-negative int32 values (0 to 2,147,483,647).
+            # It also has slight performance benefits over randint(0, 2147483647) since it directly generates the required bits.
             return random.getrandbits(31)
 
         def _randomize_seeds_in_obj(obj, node_id=None, path=""):
