@@ -140,7 +140,7 @@ handle_git_status() {
         fi
         
         # Add untracked files when we also have tracked changes
-        if [[ "$has_untracked_files" == true ]] && [[ "$has_tracked_changes" == true ]]; then
+        if [[ "$has_untracked_files" == true ]]; then
             log_info "Adding untracked files..."
             git add .
         fi
