@@ -7,11 +7,60 @@
 # Version: 3.0 (State-of-the-Art Optimized)
 #
 
-set -Eeuo pipefail
-trap 'printf "❌ Error on line %s\n" "${BASH_LINENO[0]}" >&2' ERR
+# Bash strict mode: exit on error, pipefail, inherit ERR trap
+# Note: -u (nounset) is set later (line 58) to allow optional variable checks during initialization
+set -Eeo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_BASENAME="${REPO_BASENAME:-$(basename "$SCRIPT_DIR")}"
+# Default repository name used when REPO_BASENAME cannot be determined from directory structure
+DEFAULT_REPO_NAME="runpod-comfyui-serverless"
+
+
+is_source_bash_or_empty() {
+    local val="$1"
+    [[ -z "$val" || "$val" == "bash" ]]
+}
+
+get_script_dir() {
+    local source="${BASH_SOURCE[0]:-}"
+
+    if is_source_bash_or_empty "$source"; then
+        source="${0:-}"
+        if is_source_bash_or_empty "$source"; then
+            printf 'ERROR:SCRIPT_DIR_UNDETERMINED\n' >&2
+            return 1
+        fi
+    fi
+    local dir
+    dir="$(dirname "$source" 2>/dev/null)"
+    if [[ -z "$dir" ]]; then
+        printf 'ERROR:SCRIPT_DIR_UNDETERMINED\n' >&2
+        return 1
+    fi
+
+    # Use subshell to avoid changing the caller's working directory
+    if (cd "$dir" 2>/dev/null && pwd); then
+        :
+    else
+        printf 'ERROR:SCRIPT_DIR_UNDETERMINED\n' >&2
+        return 1
+    fi
+}
+
+SCRIPT_DIR="$(get_script_dir 2>/dev/null)" || {
+    printf "❌ Could not determine script directory. Exiting.\n" >&2
+    exit 1
+}
+
+if [[ -z "${REPO_BASENAME:-}" ]]; then
+    # SCRIPT_DIR is always set (at minimum to '.'), so we can use it directly
+    REPO_BASENAME="$(basename "${SCRIPT_DIR}")"
+    # If REPO_BASENAME is empty or matches '.' or '..', treat as invalid and use DEFAULT_REPO_NAME.
+    # Note: basename never returns '/', so we only check for '.' and '..'
+    [[ -z "${REPO_BASENAME}" || "${REPO_BASENAME}" =~ ^\.\.?$ ]] && REPO_BASENAME="${DEFAULT_REPO_NAME}"
+fi
+
+set -u
+trap 'printf "❌ Error on line %s\n" "${BASH_LINENO[0]}" >&2' ERR
 
 # Common helper script resolution order:
 # 1. COMMON_HELPERS_PATH environment variable (if set, highest priority)
@@ -106,7 +155,7 @@ PYTHON_IMPORT_NAMES=("runpod" "requests" "boto3" "PIL" "numpy")
 
 # Check if we're already in the target repository
 # Compare against the expected repo name (hardcoded) to avoid self-match with dynamic REPO_BASENAME
-EXPECTED_REPO_NAME="${EXPECTED_REPO_NAME:-runpod-comfyui-serverless}"
+EXPECTED_REPO_NAME="${EXPECTED_REPO_NAME:-$DEFAULT_REPO_NAME}"
 if [[ "$(basename "$SCRIPT_DIR")" == "$EXPECTED_REPO_NAME" ]]; then
     PREEXISTING_REPO=true
 else
@@ -301,28 +350,63 @@ echo_info "🌿 Ensuring repository is on main branch..."
 GIT_FETCH_LOG="$(mktemp /tmp/git-fetch.XXXXXX.log)"
 GIT_PULL_LOG="$(mktemp /tmp/git-pull.XXXXXX.log)"
 
-if retry bash -c "git fetch origin main --tags >'$GIT_FETCH_LOG' 2>&1"; then
-    if git show-ref --verify --quiet refs/heads/main; then
-        if ! git checkout main 2>/dev/null; then
-            echo_warning "Local main branch broken – recreating from origin/main"
-            git checkout -B main origin/main 2>&1 | grep -v "^Switched" || true
+# TARGET_BRANCH: The target branch to checkout.
+# This is set via the user-configurable EXPECTED_REPO_BRANCH environment variable (defaults to 'main' if not set).
+TARGET_BRANCH="${EXPECTED_REPO_BRANCH:-main}"
+
+# Helper function to checkout branch quietly (suppress "Switched to branch" messages)
+checkout_branch_quietly() {
+    local branch="$1"
+    local create_flag="${2:-}"
+    if [[ "$create_flag" == "-B" ]]; then
+        git checkout -B "$branch" "origin/$branch" 2>&1 | grep -v "^Switched" || true
+    else
+        git checkout "$branch" 2>&1 | grep -v "^Switched" || true
+    fi
+}
+
+if retry bash -c "git fetch origin ${TARGET_BRANCH} --tags >'$GIT_FETCH_LOG' 2>&1"; then
+    if git rev-parse --verify HEAD >/dev/null 2>&1; then
+        CURRENT_BRANCH="$(git symbolic-ref --short HEAD 2>/dev/null || echo HEAD)"
+        echo_info "📦 Repository currently on branch: ${CURRENT_BRANCH}"
+        
+        # Check if we need to switch to the target branch (skip if detached)
+        if [[ "${CURRENT_BRANCH}" != "HEAD" && "${CURRENT_BRANCH}" != "${TARGET_BRANCH}" ]]; then
+            echo_info "Switching from ${CURRENT_BRANCH} to ${TARGET_BRANCH}..."
+            if git show-ref --verify --quiet "refs/heads/${TARGET_BRANCH}"; then
+                if ! git checkout "${TARGET_BRANCH}" 2>/dev/null; then
+                    echo_warning "Local ${TARGET_BRANCH} branch broken – recreating from origin/${TARGET_BRANCH}"
+                    checkout_branch_quietly "${TARGET_BRANCH}" "-B"
+                fi
+            else
+                checkout_branch_quietly "${TARGET_BRANCH}" "-B"
+            fi
+        elif [[ "${CURRENT_BRANCH}" == "HEAD" ]]; then
+            echo_warning "Repository is in detached HEAD state - skipping branch switch"
+        else
+            echo_success "Already on ${TARGET_BRANCH} branch"
         fi
     else
-        git checkout -B main origin/main 2>&1 | grep -v "^Switched" || true
+        # No valid HEAD - create/checkout the target branch
+        if git show-ref --verify --quiet "refs/heads/${TARGET_BRANCH}"; then
+            checkout_branch_quietly "${TARGET_BRANCH}"
+        else
+            checkout_branch_quietly "${TARGET_BRANCH}" "-B"
+        fi
     fi
 
     if git status --short --porcelain | grep -q ""; then
         echo_warning "Local changes present – skipping git pull"
         echo_info "Run 'git status' to see changes"
     else
-        if retry bash -c "git pull --ff-only origin main >'$GIT_PULL_LOG' 2>&1"; then
-            echo_success "Branch main successfully updated"
+        if retry bash -c "git pull --ff-only origin ${TARGET_BRANCH} >'$GIT_PULL_LOG' 2>&1"; then
+            echo_success "Branch ${TARGET_BRANCH} successfully updated"
         else
-            echo_warning "Could not update main – please check manually"
+            echo_warning "Could not update ${TARGET_BRANCH} – please check manually"
         fi
     fi
 else
-    echo_warning "Fetch from origin/main failed – working with existing copy"
+    echo_warning "Fetch from origin/${TARGET_BRANCH} failed – working with existing copy"
 fi
 rm -f "$GIT_FETCH_LOG" "$GIT_PULL_LOG"
 
@@ -517,7 +601,7 @@ else
 fi
 
 # Check if all required files exist
-REQUIRED_FILES=("rp_handler.py" "requirements.txt" "Serverless.Dockerfile" "README.md")
+REQUIRED_FILES=("rp_handler.py" "requirements.txt" "Dockerfile" "README.md")
 for file in "${REQUIRED_FILES[@]}"; do
     if [ -f "$file" ]; then
         echo_success "✓ $file"
@@ -561,7 +645,7 @@ echo_info "📝 Next steps:"
 echo "   1. Edit .env and configure your settings (especially S3 for Codex)"
 echo "   2. Test the handler: $PYTHON_CMD -c 'from rp_handler import handler'"
 echo "   3. For local testing: $PYTHON_CMD rp_handler.py"
-echo "   4. For Docker build: docker build -f Serverless.Dockerfile ."
+echo "   4. For Docker build: docker build -f Dockerfile ."
 echo ""
 
 if [ "$IN_CODEX" = true ]; then

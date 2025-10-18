@@ -21,6 +21,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+package-lock.json
 
 # PyInstaller
 *.manifest
@@ -47,6 +48,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+.workspace/
 
 # IDEs
 .vscode/
@@ -68,7 +70,5 @@ logs/
 
 # Test scripts (local development only)
 test_*.sh
-
-# Test files with real credentials
 test_endpoint_*.sh
 !test_endpoint.sh
