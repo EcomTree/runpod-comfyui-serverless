@@ -55,6 +55,7 @@ if [[ -z "${REPO_BASENAME:-}" ]]; then
     # SCRIPT_DIR is always set (at minimum to '.'), so we can use it directly
     REPO_BASENAME="$(basename "${SCRIPT_DIR}")"
     # If REPO_BASENAME is empty or matches '.' or '..', treat as invalid and use DEFAULT_REPO_NAME.
+    # Note: basename never returns '/', so we only check for '.' and '..'
     [[ -z "${REPO_BASENAME}" || "${REPO_BASENAME}" =~ ^\.\.?$ ]] && REPO_BASENAME="${DEFAULT_REPO_NAME}"
 fi
 
@@ -353,9 +354,20 @@ GIT_PULL_LOG="$(mktemp /tmp/git-pull.XXXXXX.log)"
 # This is set via the user-configurable EXPECTED_REPO_BRANCH environment variable (defaults to 'main' if not set).
 TARGET_BRANCH="${EXPECTED_REPO_BRANCH:-main}"
 
+# Helper function to checkout branch quietly (suppress "Switched to branch" messages)
+checkout_branch_quietly() {
+    local branch="$1"
+    local create_flag="${2:-}"
+    if [[ "$create_flag" == "-B" ]]; then
+        git checkout -B "$branch" "origin/$branch" 2>&1 | grep -v "^Switched" || true
+    else
+        git checkout "$branch" 2>&1 | grep -v "^Switched" || true
+    fi
+}
+
 if retry bash -c "git fetch origin ${TARGET_BRANCH} --tags >'$GIT_FETCH_LOG' 2>&1"; then
     if git rev-parse --verify HEAD >/dev/null 2>&1; then
-        CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo HEAD)"
+        CURRENT_BRANCH="$(git symbolic-ref --short HEAD 2>/dev/null || echo HEAD)"
         echo_info "📦 Repository currently on branch: ${CURRENT_BRANCH}"
         
         # Check if we need to switch to the target branch (skip if detached)
@@ -364,20 +376,22 @@ if retry bash -c "git fetch origin ${TARGET_BRANCH} --tags >'$GIT_FETCH_LOG' 2>&
             if git show-ref --verify --quiet "refs/heads/${TARGET_BRANCH}"; then
                 if ! git checkout "${TARGET_BRANCH}" 2>/dev/null; then
                     echo_warning "Local ${TARGET_BRANCH} branch broken – recreating from origin/${TARGET_BRANCH}"
-                    git checkout -B "${TARGET_BRANCH}" "origin/${TARGET_BRANCH}" 2>&1 | grep -v "^Switched" || true
+                    checkout_branch_quietly "${TARGET_BRANCH}" "-B"
                 fi
             else
-                git checkout -B "${TARGET_BRANCH}" "origin/${TARGET_BRANCH}" 2>&1 | grep -v "^Switched" || true
+                checkout_branch_quietly "${TARGET_BRANCH}" "-B"
             fi
+        elif [[ "${CURRENT_BRANCH}" == "HEAD" ]]; then
+            echo_warning "Repository is in detached HEAD state - skipping branch switch"
         else
             echo_success "Already on ${TARGET_BRANCH} branch"
         fi
     else
         # No valid HEAD - create/checkout the target branch
         if git show-ref --verify --quiet "refs/heads/${TARGET_BRANCH}"; then
-            git checkout "${TARGET_BRANCH}" 2>&1 | grep -v "^Switched" || true
+            checkout_branch_quietly "${TARGET_BRANCH}"
         else
-            git checkout -B "${TARGET_BRANCH}" "origin/${TARGET_BRANCH}" 2>&1 | grep -v "^Switched" || true
+            checkout_branch_quietly "${TARGET_BRANCH}" "-B"
         fi
     fi
 
