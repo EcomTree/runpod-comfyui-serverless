@@ -31,7 +31,7 @@ get_script_dir() {
     fi
 
     local dir
-    dir="$(dirname "$source" 2>/dev/null || printf '.\n')"
+    dir="$(dirname "$source" 2>/dev/null || printf '.')"
 
     # Use subshell to avoid changing the caller's working directory
     (cd "$dir" 2>/dev/null && pwd) || pwd
