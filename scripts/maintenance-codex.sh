@@ -209,8 +209,7 @@ push_changes() {
             git push origin "$current_branch"
             log_success "Changes pushed to origin"
         else
-    # Check if the remote branch exists
-    if git ls-remote --exit-code --heads origin "$current_branch" > /dev/null 2>&1; then
+            log_success "Branch is up to date with origin"
         fi
     else
         # Remote branch doesn't exist - first push, set upstream
