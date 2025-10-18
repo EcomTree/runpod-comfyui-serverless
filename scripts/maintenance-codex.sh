@@ -61,14 +61,6 @@ setup_git_remotes() {
         log_info "Origin remote already exists"
     fi
     
-    # Check if development remote exists
-    if ! git remote get-url development > /dev/null 2>&1; then
-        git remote add development "$REMOTE_URL"
-        log_success "Added development remote"
-    else
-        log_info "Development remote already exists"
-    fi
-    
     # Show current remotes
     log_info "Current remotes:"
     git remote -v
