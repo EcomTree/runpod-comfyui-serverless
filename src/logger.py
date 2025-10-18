@@ -1,5 +1,5 @@
 """
-Logging configuration for RunPod ComfyUI Serverless Handler
+Logging configuration for Codex Coding Background Agent
 """
 import logging
 import logging.handlers
@@ -9,11 +9,11 @@ from pathlib import Path
 from typing import Optional
 
 
-class ComfyUILogger:
-    """Centralized logging for ComfyUI Serverless Handler"""
+class CodexLogger:
+    """Centralized logging for Codex Coding Background Agent"""
 
     def __init__(self):
-        self.logger = logging.getLogger('comfyui-serverless')
+        self.logger = logging.getLogger('codex-agent')
         self._setup_logging()
 
     def _setup_logging(self):
@@ -72,7 +72,7 @@ class ComfyUILogger:
 
     def get_logger(self, name: str) -> logging.Logger:
         """Get a logger with the specified name"""
-        return logging.getLogger(f'comfyui-serverless.{name}')
+        return logging.getLogger(f'codex-agent.{name}')
 
     def debug(self, message: str, *args, **kwargs):
         """Log debug message"""
@@ -96,7 +96,7 @@ class ComfyUILogger:
 
 
 # Global logger instance
-logger = ComfyUILogger()
+logger = CodexLogger()
 
 
 def get_logger(name: str) -> logging.Logger:
@@ -107,5 +107,5 @@ def get_logger(name: str) -> logging.Logger:
 def setup_logging():
     """Initialize logging (called once at application startup)"""
     # This function exists to ensure logging is properly initialized
-    # The actual setup happens in the ComfyUILogger constructor
+    # The actual setup happens in the CodexLogger constructor
     pass

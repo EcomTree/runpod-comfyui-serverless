@@ -1,5 +1,5 @@
 """
-Configuration management for RunPod ComfyUI Serverless Handler
+Configuration management for Codex Coding Background Agent
 """
 import os
 from pathlib import Path
@@ -7,7 +7,7 @@ from typing import Dict, Any, Optional
 
 
 class Config:
-    """Configuration management class"""
+    """Configuration management class for Codex Agent"""
 
     def __init__(self):
         self._config = {}
@@ -21,52 +21,80 @@ class Config:
 
     def _load_config(self):
         """Load configuration from environment variables"""
-        # ComfyUI Configuration
+        # Git Configuration
         self._config.update({
-            'comfy_port': self._parse_int_env('COMFY_PORT', '8188'),
-            'comfy_host': os.getenv('COMFY_HOST', '127.0.0.1'),
-            'comfy_startup_timeout': self._parse_int_env('COMFYUI_STARTUP_TIMEOUT', '600'),  # Default: 10 minutes
-            'randomize_seeds': self._parse_bool_env('RANDOMIZE_SEEDS', 'true'),
-            'comfy_refresh_models': self._parse_bool_env('COMFYUI_REFRESH_MODELS', 'true'),
-            'cleanup_temp_files': self._parse_bool_env('CLEANUP_TEMP_FILES', 'true'),
-            'debug_s3_urls': self._parse_bool_env('DEBUG_S3_URLS', 'false'),
+            'git_user_email': os.getenv('GIT_USER_EMAIL', 'codex@runpod.io'),
+            'git_user_name': os.getenv('GIT_USER_NAME', 'Codex Agent'),
+            'git_default_branch': os.getenv('GIT_DEFAULT_BRANCH', 'main'),
         })
 
-        # S3 Configuration
-        self._config['s3'] = {
-            'bucket': os.getenv('S3_BUCKET'),
-            'access_key': os.getenv('S3_ACCESS_KEY'),
-            'secret_key': os.getenv('S3_SECRET_KEY'),
-            'endpoint_url': os.getenv('S3_ENDPOINT_URL'),
-            'region': os.getenv('S3_REGION', 'auto'),
-            'public_url': os.getenv('S3_PUBLIC_URL'),
-            'signed_url_expiry': int(os.getenv('S3_SIGNED_URL_EXPIRY', '3600')),
-            'cache_control': os.getenv('S3_CACHE_CONTROL', 'public, max-age=31536000'),
-            'signature_version': os.getenv('S3_SIGNATURE_VERSION', 's3v4'),
-            'addressing_style': os.getenv('S3_ADDRESSING_STYLE', 'path'),
+        # Development Environment
+        self._config['development'] = {
+            'python_path': os.getenv('PYTHON_PATH', '/usr/bin/python3'),
+            'virtual_env_path': os.getenv('VIRTUAL_ENV_PATH', '.venv'),
+            'enable_linting': self._parse_bool_env('ENABLE_LINTING', 'true'),
+            'enable_formatting': self._parse_bool_env('ENABLE_FORMATTING', 'true'),
+            'enable_type_checking': self._parse_bool_env('ENABLE_TYPE_CHECKING', 'true'),
         }
 
-        # Volume Configuration
-        self._config['volume'] = {
-            'runpod_volume_path': Path(os.getenv('RUNPOD_VOLUME_PATH', '/runpod-volume')),
-            'runpod_output_dir': os.getenv('RUNPOD_OUTPUT_DIR'),
-            'network_volume_timeout': self._parse_int_env('NETWORK_VOLUME_TIMEOUT', '15'),
+        # Project Configuration
+        self._config['project'] = {
+            'project_root': Path(os.getenv('PROJECT_ROOT', '/workspace')),
+            'temp_dir': Path(os.getenv('TEMP_DIR', '/tmp/codex-agent')),
+            'log_file': os.getenv('LOG_FILE', '/workspace/logs/codex-agent.log'),
+            'log_level': os.getenv('LOG_LEVEL', 'INFO'),
         }
 
-        # Workspace Configuration
-        self._config['workspace'] = {
-            'workspace_path': Path('/workspace'),
-            'comfyui_path': Path('/workspace/ComfyUI'),
-            'comfyui_models_path': Path('/workspace/ComfyUI/models'),
-            'comfyui_output_path': Path('/workspace/ComfyUI/output'),
-            'comfyui_logs_path': Path('/workspace/logs'),
+        # Code Quality Tools
+        self._config['quality'] = {
+            'linter_tools': os.getenv('LINTER_TOOLS', 'flake8,black,isort,mypy').split(','),
+            'test_framework': os.getenv('TEST_FRAMEWORK', 'pytest'),
+            'test_coverage_threshold': int(os.getenv('TEST_COVERAGE_THRESHOLD', '80')),
+            'doc_format': os.getenv('DOC_FORMAT', 'markdown'),
+            'doc_generator': os.getenv('DOC_GENERATOR', 'sphinx'),
+            'enable_complexity_analysis': self._parse_bool_env('ENABLE_COMPLEXITY_ANALYSIS', 'true'),
+            'max_complexity': int(os.getenv('MAX_COMPLEXITY', '10')),
+            'enable_security_scan': self._parse_bool_env('ENABLE_SECURITY_SCAN', 'true'),
+            'security_tools': os.getenv('SECURITY_TOOLS', 'bandit,safety').split(','),
         }
 
-        # Workflow Configuration
-        self._config['workflow'] = {
-            'max_wait_time': 3600,  # 60 minutes for video rendering
-            'poll_interval': 5,     # seconds
-            'default_workflow_duration': 60,  # seconds
+        # Repository Management
+        self._config['repository'] = {
+            'default_remote': os.getenv('DEFAULT_REMOTE', 'origin'),
+            'default_branch': os.getenv('DEFAULT_BRANCH', 'main'),
+            'auto_commit': self._parse_bool_env('AUTO_COMMIT', 'false'),
+            'commit_message_prefix': os.getenv('COMMIT_MESSAGE_PREFIX', 'codex:'),
+        }
+
+        # Performance Monitoring
+        self._config['monitoring'] = {
+            'monitor_memory': self._parse_bool_env('MONITOR_MEMORY', 'true'),
+            'max_memory_mb': int(os.getenv('MAX_MEMORY_MB', '2048')),
+            'monitor_cpu': self._parse_bool_env('MONITOR_CPU', 'true'),
+            'max_cpu_percent': int(os.getenv('MAX_CPU_PERCENT', '80')),
+        }
+
+        # File Management
+        self._config['files'] = {
+            'cleanup_temp_files': self._parse_bool_env('CLEANUP_TEMP_FILES', 'true'),
+            'temp_file_age_hours': int(os.getenv('TEMP_FILE_AGE_HOURS', '24')),
+            'enable_backup': self._parse_bool_env('ENABLE_BACKUP', 'true'),
+            'backup_retention_days': int(os.getenv('BACKUP_RETENTION_DAYS', '7')),
+        }
+
+        # Network Configuration
+        self._config['network'] = {
+            'request_timeout': int(os.getenv('REQUEST_TIMEOUT', '30')),
+            'connection_timeout': int(os.getenv('CONNECTION_TIMEOUT', '10')),
+            'max_retries': int(os.getenv('MAX_RETRIES', '3')),
+            'retry_delay': int(os.getenv('RETRY_DELAY', '2')),
+        }
+
+        # Debugging
+        self._config['debug'] = {
+            'debug_mode': self._parse_bool_env('DEBUG_MODE', 'false'),
+            'verbose_logging': self._parse_bool_env('VERBOSE_LOGGING', 'false'),
+            'trace_execution': self._parse_bool_env('TRACE_EXECUTION', 'false'),
         }
 
     def _parse_bool_env(self, key: str, default: str = 'false') -> bool:
@@ -85,48 +113,77 @@ class Config:
                 return int(default)
             except (ValueError, TypeError):
                 raise ValueError(f"[config] ERROR: Invalid default integer value for {key}: '{default}' (env value: '{value}')")
+
     def get(self, key: str, default: Any = None) -> Any:
         """Get configuration value"""
         return self._config.get(key, default)
 
-    def get_s3_config(self) -> Dict[str, Any]:
-        """Get S3 configuration"""
-        return self._config['s3']
+    def get_development_config(self) -> Dict[str, Any]:
+        """Get development configuration"""
+        return self._config['development']
 
-    def get_volume_config(self) -> Dict[str, Any]:
-        """Get volume configuration"""
-        return self._config['volume']
+    def get_project_config(self) -> Dict[str, Any]:
+        """Get project configuration"""
+        return self._config['project']
 
-    def get_workspace_config(self) -> Dict[str, Any]:
-        """Get workspace configuration"""
-        return self._config['workspace']
+    def get_quality_config(self) -> Dict[str, Any]:
+        """Get code quality configuration"""
+        return self._config['quality']
 
-    def get_workflow_config(self) -> Dict[str, Any]:
-        """Get workflow configuration"""
-        return self._config['workflow']
+    def get_repository_config(self) -> Dict[str, Any]:
+        """Get repository configuration"""
+        return self._config['repository']
 
-    def is_s3_configured(self) -> bool:
-        """Check if S3 is properly configured"""
-        s3_config = self.get_s3_config()
-        return all([
-            s3_config['bucket'],
-            s3_config['access_key'],
-            s3_config['secret_key']
-        ])
+    def get_monitoring_config(self) -> Dict[str, Any]:
+        """Get monitoring configuration"""
+        return self._config['monitoring']
 
-    def get_comfyui_base_url(self) -> str:
-        """Get ComfyUI base URL"""
-        return f"http://{self._config['comfy_host']}:{self._config['comfy_port']}"
+    def get_files_config(self) -> Dict[str, Any]:
+        """Get file management configuration"""
+        return self._config['files']
 
-    def get_supported_extensions(self) -> Dict[str, list]:
-        """Get supported file extensions"""
+    def get_network_config(self) -> Dict[str, Any]:
+        """Get network configuration"""
+        return self._config['network']
+
+    def get_debug_config(self) -> Dict[str, Any]:
+        """Get debug configuration"""
+        return self._config['debug']
+
+    def is_development_mode(self) -> bool:
+        """Check if development mode is enabled"""
+        return self.get_debug_config()['debug_mode']
+
+    def get_supported_languages(self) -> Dict[str, list]:
+        """Get supported programming languages and their extensions"""
         return {
-            'image': ['*.png', '*.jpg', '*.jpeg', '*.webp', '*.gif'],
-            'video': ['*.mp4', '*.webm', '*.mov', '*.avi']
+            'python': ['.py', '.pyi', '.pyc'],
+            'javascript': ['.js', '.jsx', '.mjs'],
+            'typescript': ['.ts', '.tsx'],
+            'java': ['.java'],
+            'cpp': ['.cpp', '.cc', '.cxx', '.c++'],
+            'c': ['.c'],
+            'go': ['.go'],
+            'rust': ['.rs'],
+            'html': ['.html', '.htm'],
+            'css': ['.css', '.scss', '.sass'],
+            'json': ['.json'],
+            'yaml': ['.yaml', '.yml'],
+            'markdown': ['.md', '.markdown'],
+            'xml': ['.xml'],
+            'sql': ['.sql'],
         }
+
+    def get_project_root(self) -> Path:
+        """Get project root directory"""
+        return self._config['project']['project_root']
+
+    def get_temp_dir(self) -> Path:
+        """Get temporary directory"""
+        return self._config['project']['temp_dir']
 
 
 # Global configuration instance
-# Note: Singleton pattern is intentional for serverless functions.
-# Configuration is loaded once at container startup and reused across invocations.
+# Note: Singleton pattern is intentional for background agents.
+# Configuration is loaded once at startup and reused across operations.
 config = Config()
