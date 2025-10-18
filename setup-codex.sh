@@ -8,6 +8,12 @@
 # For piped execution, use setup-codex-optimized.sh directly:
 #   curl -fsSL https://raw.githubusercontent.com/.../setup-codex-optimized.sh | bash
 
+# Repository configuration - update these if the repo is moved
+REPO_ORG="EcomTree"
+REPO_NAME="runpod-comfyui-serverless"
+REPO_BRANCH="main"
+SETUP_SCRIPT_URL="https://raw.githubusercontent.com/${REPO_ORG}/${REPO_NAME}/${REPO_BRANCH}/setup-codex-optimized.sh"
+
 # Detect script directory - only works when script is saved to disk
 if [[ -n "${BASH_SOURCE[0]:-}" && "${BASH_SOURCE[0]}" != "bash" ]]; then
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -22,7 +28,7 @@ if [[ ! -f "${TARGET_SCRIPT}" ]]; then
     echo "❌ setup-codex-optimized.sh not found (path: ${TARGET_SCRIPT})" >&2
     echo "➡️  Please re-clone the repository or pull the latest release." >&2
     echo "➡️  Or use the optimized script directly for piped execution:" >&2
-    echo "    curl -fsSL https://raw.githubusercontent.com/EcomTree/runpod-comfyui-serverless/main/setup-codex-optimized.sh | bash" >&2
+    echo "    curl -fsSL ${SETUP_SCRIPT_URL} | bash" >&2
     exit 1
 fi
 
