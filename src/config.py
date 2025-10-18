@@ -75,12 +75,16 @@ class Config:
 
     def _parse_int_env(self, key: str, default: str) -> int:
         """Safely parse environment variable as integer"""
+        value = os.getenv(key, default)
         try:
-            value = os.getenv(key, default)
             return int(value)
-        except (ValueError, TypeError) as e:
-            print(f"[config] WARNING: Invalid integer value for {key}: '{value}', using default: {default}")
-            return int(default)
+        except (ValueError, TypeError):
+            print(f"[config] WARNING: Invalid integer value for {key}: '{value}', attempting to use default: {default}")
+            try:
+                return int(default)
+            except (ValueError, TypeError):
+                print(f"[config] ERROR: Invalid default integer value for {key}: '{default}', using fallback value 0")
+                return 0
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get configuration value"""
