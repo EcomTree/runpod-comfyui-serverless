@@ -30,7 +30,11 @@ get_script_dir() {
         fi
     fi
     local dir
-    dir="$(dirname "$source" 2>/dev/null || printf '.')"
+    dir="$(dirname "$source" 2>/dev/null)"
+    if [[ -z "$dir" ]]; then
+        printf 'ERROR:SCRIPT_DIR_UNDETERMINED\n' >&2
+        return 1
+    fi
 
     # Use subshell to avoid changing the caller's working directory
     if (cd "$dir" 2>/dev/null && pwd); then
