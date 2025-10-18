@@ -17,7 +17,6 @@ from botocore.config import Config
 from .config import config
 
 
-
 class S3Handler:
     """Handle S3 storage operations"""
 
