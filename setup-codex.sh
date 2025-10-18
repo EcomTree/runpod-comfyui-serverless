@@ -8,8 +8,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-0}")" && pwd)"
 TARGET_SCRIPT="${SCRIPT_DIR}/setup-codex-optimized.sh"
 
 if [[ ! -f "${TARGET_SCRIPT}" ]]; then
-    echo "❌ setup-codex-optimized.sh nicht gefunden (Pfad: ${TARGET_SCRIPT})" >&2
-    echo "➡️  Bitte Repository erneut klonen oder das neueste Release ziehen." >&2
+    echo "❌ setup-codex-optimized.sh not found (path: ${TARGET_SCRIPT})" >&2
+    echo "➡️  Please re-clone the repository or pull the latest release." >&2
     exit 1
 fi
 

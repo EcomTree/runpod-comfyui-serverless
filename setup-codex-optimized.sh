@@ -27,7 +27,8 @@ get_script_dir() {
     local dir
     dir="$(dirname "$source" 2>/dev/null || printf '.\n')"
 
-    cd "$dir" 2>/dev/null && pwd || pwd
+    # Use subshell to avoid changing the caller's working directory
+    (cd "$dir" 2>/dev/null && pwd) || pwd
 }
 
 SCRIPT_DIR="$(get_script_dir)"
@@ -337,13 +338,31 @@ echo_info "🌿 Ensuring repository is on main branch..."
 GIT_FETCH_LOG="$(mktemp /tmp/git-fetch.XXXXXX.log)"
 GIT_PULL_LOG="$(mktemp /tmp/git-pull.XXXXXX.log)"
 
+# EXPECTED_REPO_BRANCH: Environment variable to specify the target branch to checkout
+# Defaults to 'main' if not set. Use this to work with feature branches or other default branches.
 TARGET_BRANCH="${EXPECTED_REPO_BRANCH:-main}"
 
 if retry bash -c "git fetch origin ${TARGET_BRANCH} --tags >'$GIT_FETCH_LOG' 2>&1"; then
     if git rev-parse --verify --quiet HEAD >/dev/null 2>&1; then
         CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
         echo_info "📦 Repository currently on branch: ${CURRENT_BRANCH}"
+        
+        # Check if we need to switch to the target branch
+        if [[ "${CURRENT_BRANCH}" != "${TARGET_BRANCH}" ]]; then
+            echo_info "Switching from ${CURRENT_BRANCH} to ${TARGET_BRANCH}..."
+            if git show-ref --verify --quiet "refs/heads/${TARGET_BRANCH}"; then
+                if ! git checkout "${TARGET_BRANCH}" 2>/dev/null; then
+                    echo_warning "Local ${TARGET_BRANCH} branch broken – recreating from origin/${TARGET_BRANCH}"
+                    git checkout -B "${TARGET_BRANCH}" "origin/${TARGET_BRANCH}" 2>&1 | grep -v "^Switched" || true
+                fi
+            else
+                git checkout -B "${TARGET_BRANCH}" "origin/${TARGET_BRANCH}" 2>&1 | grep -v "^Switched" || true
+            fi
+        else
+            echo_success "Already on ${TARGET_BRANCH} branch"
+        fi
     else
+        # No valid HEAD - create/checkout the target branch
         if git show-ref --verify --quiet "refs/heads/${TARGET_BRANCH}"; then
             git checkout "${TARGET_BRANCH}" 2>&1 | grep -v "^Switched" || true
         else

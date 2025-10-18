@@ -61,7 +61,7 @@ Only GPUs with **Ada Lovelace, Hopper, or Blackwell architecture** are supported
 > curl -fsSL https://raw.githubusercontent.com/EcomTree/runpod-comfyui-serverless/main/setup-codex-optimized.sh | bash
 > ```
 >
-> Dieser Befehl richtet alles in Codex automatisiert ein.
+> This command sets everything up automatically in Codex.
 
 1. **Clone Repository**
    ```bash
