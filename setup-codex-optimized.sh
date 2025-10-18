@@ -12,14 +12,20 @@ set -o pipefail
 
 DEFAULT_REPO_NAME="runpod-comfyui-serverless"
 
+
+is_source_bash_or_empty() {
+    local val="$1"
+    [[ -z "$val" || "$val" == "bash" ]]
+}
+
 get_script_dir() {
     local source="${BASH_SOURCE[0]:-}"
 
-    if [[ -z "$source" || "$source" == "bash" ]]; then
+    if is_source_bash_or_empty "$source"; then
         source="${0:-}"
     fi
 
-    if [[ -z "$source" || "$source" == "bash" ]]; then
+    if is_source_bash_or_empty "$source"; then
         printf '%s\n' "$(pwd)"
         return
     fi
