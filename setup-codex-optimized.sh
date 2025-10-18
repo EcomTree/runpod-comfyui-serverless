@@ -25,18 +25,26 @@ get_script_dir() {
     if is_source_bash_or_empty "$source"; then
         source="${0:-}"
         if is_source_bash_or_empty "$source"; then
-            printf '%s\n' "$(pwd)"
-            return
+            printf 'ERROR:SCRIPT_DIR_UNDETERMINED\n' >&2
+            return 1
         fi
     fi
     local dir
     dir="$(dirname "$source" 2>/dev/null || printf '.')"
 
     # Use subshell to avoid changing the caller's working directory
-    (cd "$dir" 2>/dev/null && pwd) || pwd
+    if (cd "$dir" 2>/dev/null && pwd); then
+        :
+    else
+        printf 'ERROR:SCRIPT_DIR_UNDETERMINED\n' >&2
+        return 1
+    fi
 }
 
-SCRIPT_DIR="$(get_script_dir)"
+SCRIPT_DIR="$(get_script_dir 2>/dev/null)" || {
+    printf "❌ Could not determine script directory. Exiting.\n" >&2
+    exit 1
+}
 
 if [[ -z "${REPO_BASENAME:-}" ]]; then
     # SCRIPT_DIR is always set (at minimum to '.'), so we can use it directly
