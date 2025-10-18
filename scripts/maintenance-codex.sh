@@ -141,10 +141,8 @@ handle_git_status() {
         
         # Add untracked files when we also have tracked changes
         # After the early return above, if we reach here, has_tracked_changes must be true
-        if [[ "$has_untracked_files" = true ]]; then
-            log_info "Adding untracked files..."
-            git add .
-        fi
+        log_info "Adding untracked files (if any)..."
+        git add .
         
         # Commit changes if there are staged changes
         if ! git diff --cached --quiet; then
