@@ -177,7 +177,7 @@ update_branch() {
         # Check if we're behind upstream
         local behind_count
         if behind_count=$(git rev-list --count HEAD..@{u} 2>/dev/null); then
-            if [[ "$behind_count" =~ ^[0-9]+$ && "$behind_count" -gt 0 ]]; then
+            if [[ "$behind_count" -gt 0 ]]; then
                 log_info "Branch is $behind_count commits behind upstream"
                 log_info "Pulling latest changes..."
                 git pull
