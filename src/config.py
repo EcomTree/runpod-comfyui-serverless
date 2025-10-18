@@ -23,7 +23,7 @@ class Config:
         """Load configuration from environment variables"""
         # ComfyUI Configuration
         self._config.update({
-            'comfy_port': int(os.getenv('COMFY_PORT', '8188')),
+            'comfy_port': self._parse_int_env('COMFY_PORT', '8188'),
             'comfy_host': os.getenv('COMFY_HOST', '127.0.0.1'),
             'randomize_seeds': self._parse_bool_env('RANDOMIZE_SEEDS', 'true'),
             'comfy_refresh_models': self._parse_bool_env('COMFYUI_REFRESH_MODELS', 'true'),
@@ -49,7 +49,7 @@ class Config:
         self._config['volume'] = {
             'runpod_volume_path': Path(os.getenv('RUNPOD_VOLUME_PATH', '/runpod-volume')),
             'runpod_output_dir': os.getenv('RUNPOD_OUTPUT_DIR'),
-            'network_volume_timeout': int(os.getenv('NETWORK_VOLUME_TIMEOUT', '15')),
+            'network_volume_timeout': self._parse_int_env('NETWORK_VOLUME_TIMEOUT', '15'),
         }
 
         # Workspace Configuration
@@ -72,6 +72,15 @@ class Config:
         """Safely parse environment variable as boolean"""
         value = os.getenv(key, default).lower()
         return value in {'1', 'true', 'yes', 'on'}
+
+    def _parse_int_env(self, key: str, default: str) -> int:
+        """Safely parse environment variable as integer"""
+        try:
+            value = os.getenv(key, default)
+            return int(value)
+        except (ValueError, TypeError) as e:
+            self.logger.warning(f"Invalid integer value for {key}: '{value}', using default: {default}")
+            return int(default)
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get configuration value"""
