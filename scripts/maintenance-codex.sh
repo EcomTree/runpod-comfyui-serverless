@@ -11,9 +11,9 @@ set -euo pipefail
 get_script_dir() {
     local src="${BASH_SOURCE[0]}"
     if [[ -n "$src" && -e "$src" ]]; then
-        cd "$(dirname "$src")" && pwd
+        (cd "$(dirname "$src")" && pwd)
     elif [[ -n "$0" && -e "$0" ]]; then
-        cd "$(dirname "$0")" && pwd
+        (cd "$(dirname "$0")" && pwd)
     else
         echo "Error: Unable to determine script directory." >&2
         exit 1
