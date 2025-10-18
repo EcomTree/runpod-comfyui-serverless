@@ -4,6 +4,7 @@ S3 storage handler for RunPod ComfyUI Serverless
 import datetime
 import mimetypes
 import traceback
+import uuid
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple
 from urllib.parse import urlparse, urlunparse
