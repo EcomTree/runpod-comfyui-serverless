@@ -121,13 +121,14 @@ handle_git_status() {
         
         # Add untracked files only if we also have tracked changes
         # This prevents committing only untracked files without any real changes
-        if [[ "$has_untracked_files" == true ]] && [[ "$has_tracked_changes" == true ]]; then
-            log_info "Adding untracked files..."
-            git add .
-        elif [[ "$has_untracked_files" == true ]]; then
+        if [[ "$has_untracked_files" == true ]] && [[ "$has_tracked_changes" != true ]]; then
             log_info "Only untracked files present - skipping auto-commit"
             log_info "Use 'git add' manually if you want to commit these files"
             return 0
+        fi
+        if [[ "$has_untracked_files" == true ]] && [[ "$has_tracked_changes" == true ]]; then
+            log_info "Adding untracked files..."
+            git add .
         fi
         
         # Commit changes if there are staged changes
