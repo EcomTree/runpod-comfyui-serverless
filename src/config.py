@@ -84,9 +84,7 @@ class Config:
             try:
                 return int(default)
             except (ValueError, TypeError):
-                print(f"[config] ERROR: Invalid default integer value for {key}: '{default}', using fallback value 0")
-                return 0
-
+                raise ValueError(f"[config] ERROR: Invalid default integer value for {key}: '{default}' (env value: '{value}')")
     def get(self, key: str, default: Any = None) -> Any:
         """Get configuration value"""
         return self._config.get(key, default)
