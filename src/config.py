@@ -127,4 +127,6 @@ class Config:
 
 
 # Global configuration instance
+# Note: Singleton pattern is intentional for serverless functions.
+# Configuration is loaded once at container startup and reused across invocations.
 config = Config()
