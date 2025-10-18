@@ -2,6 +2,7 @@
 
 import runpod
 import time
+import traceback
 import uuid
 from pathlib import Path
 from typing import Dict, Any
@@ -92,8 +93,13 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
 
         # Check if we have any output
         if not output_urls:
-            error_details = "; ".join([f["error"] for f in failed_uploads]) if config.is_s3_configured() else "Failed to save all images to volume"
-            return {"error": f"Failed to upload all images{' to S3' if config.is_s3_configured() else ''} and no volume paths available: {error_details}"}
+            # Build clear error message based on storage configuration
+            if config.is_s3_configured():
+                error_details = "; ".join([f["error"] for f in failed_uploads])
+                error_message = f"Failed to upload all images to S3 and no volume paths available: {error_details}"
+            else:
+                error_message = "Failed to save all images to volume"
+            return {"error": error_message}
 
         # Determine storage type
         actual_storage_type = "s3" if (config.is_s3_configured() and s3_success_count > 0) else "volume"
@@ -139,7 +145,6 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
 
     except Exception as e:
         print(f"❌ Handler Error: {e}")
-        import traceback
         print(f"📋 Traceback: {traceback.format_exc()}")
         return {"error": f"Handler Error: {str(e)}"}
 

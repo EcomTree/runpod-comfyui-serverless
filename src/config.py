@@ -25,6 +25,7 @@ class Config:
         self._config.update({
             'comfy_port': self._parse_int_env('COMFY_PORT', '8188'),
             'comfy_host': os.getenv('COMFY_HOST', '127.0.0.1'),
+            'comfy_startup_timeout': self._parse_int_env('COMFYUI_STARTUP_TIMEOUT', '600'),  # Default: 10 minutes
             'randomize_seeds': self._parse_bool_env('RANDOMIZE_SEEDS', 'true'),
             'comfy_refresh_models': self._parse_bool_env('COMFYUI_REFRESH_MODELS', 'true'),
             'cleanup_temp_files': self._parse_bool_env('CLEANUP_TEMP_FILES', 'true'),

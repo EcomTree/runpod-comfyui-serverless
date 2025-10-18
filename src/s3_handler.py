@@ -3,6 +3,7 @@ S3 storage handler for RunPod ComfyUI Serverless
 """
 import datetime
 import mimetypes
+import shutil
 import traceback
 import uuid
 from pathlib import Path
@@ -177,7 +178,6 @@ class S3Handler:
             dest_path = volume_output_dir / dest_filename
 
             # Copy file
-            import shutil
             shutil.copy2(file_path, dest_path)
 
             self.logger.info(f"File successfully copied to: {dest_path}")

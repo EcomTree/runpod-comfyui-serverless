@@ -181,8 +181,13 @@ class ComfyUIManager:
             pass
         return False
 
-    def _wait_for_comfyui(self, max_retries: int = 600, delay: int = 2) -> bool:
+    def _wait_for_comfyui(self, max_retries: int = None, delay: int = 2) -> bool:
         """Wait until ComfyUI is ready"""
+        # Use configured timeout or default
+        if max_retries is None:
+            timeout_seconds = config.get('comfy_startup_timeout', 600)
+            max_retries = timeout_seconds // delay
+        
         base_url = config.get_comfyui_base_url()
         print(f"⏳ Waiting for ComfyUI to start (timeout: {max_retries * delay}s = {max_retries * delay / 60:.1f} min)...")
 

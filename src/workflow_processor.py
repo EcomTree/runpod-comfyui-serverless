@@ -45,11 +45,9 @@ class WorkflowProcessor:
             Note:
                 Uses 31 bits (not 32) to ensure compatibility with signed 32-bit integers
                 used by ComfyUI nodes. This avoids potential overflow issues with nodes
-                that expect positive integers within the signed int32 range.
+                that expect non-negative integers within the signed int32 range.
             """
-            # getrandbits(31) is used primarily to ensure compatibility with signed 32-bit integers,
-            # avoiding overflow issues with nodes expecting non-negative int32 values (0 to 2,147,483,647).
-            # It also has slight performance benefits over randint(0, 2147483647) since it directly generates the required bits.
+            # Use getrandbits(31) for signed 32-bit int compatibility and performance
             return random.getrandbits(31)
 
         def _randomize_seeds_in_obj(obj, node_id=None, path=""):
