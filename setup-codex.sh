@@ -4,7 +4,7 @@
 # The optimized script was renamed to setup-codex-optimized.sh.
 # Keep this thin shim so existing Codex configurations keep working.
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-0}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-""}")" && pwd)"
 TARGET_SCRIPT="${SCRIPT_DIR}/setup-codex-optimized.sh"
 
 if [[ ! -f "${TARGET_SCRIPT}" ]]; then
