@@ -127,20 +127,20 @@ handle_git_status() {
     fi
     
     # Process changes if any exist
-    if [[ "$has_tracked_changes" == true ]] || [[ "$has_untracked_files" == true ]]; then
+    if [[ $has_tracked_changes = true ]] || [[ $has_untracked_files = true ]]; then
         log_warning "Uncommitted changes detected"
         git status --short
         
         # Early return if only untracked files exist (no tracked changes)
         # This prevents committing only untracked files without any real changes
-        if [[ "$has_untracked_files" == true ]] && [[ "$has_tracked_changes" == false ]]; then
+        if [[ $has_untracked_files = true ]] && [[ $has_tracked_changes = false ]]; then
             log_info "Only untracked files present - skipping auto-commit"
             log_info "Use 'git add' manually if you want to commit these files"
             return 0
         fi
         
         # Add untracked files when we also have tracked changes
-        if [[ "$has_untracked_files" == true ]]; then
+        if [[ $has_untracked_files = true ]]; then
             log_info "Adding untracked files..."
             git add .
         fi
