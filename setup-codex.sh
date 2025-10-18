@@ -9,7 +9,7 @@
 #   curl -fsSL https://raw.githubusercontent.com/.../setup-codex-optimized.sh | bash
 
 # Detect script directory - only works when script is saved to disk
-if [[ -n "${BASH_SOURCE[0]:-}" && "${BASH_SOURCE[0]}" != "bash" && ! -p /dev/stdin ]]; then
+if [[ -n "${BASH_SOURCE[0]:-}" && "${BASH_SOURCE[0]}" != "bash" ]]; then
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 else
     # Fallback: assume we're in the repository root (or piped execution)
