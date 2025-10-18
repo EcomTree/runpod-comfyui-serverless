@@ -207,5 +207,11 @@ class S3Handler:
             }
 
 
-# Global S3 handler instance
-s3_handler = S3Handler()
+# S3 handler singleton factory
+_s3_handler_instance = None
+
+def get_s3_handler():
+    global _s3_handler_instance
+    if _s3_handler_instance is None:
+        _s3_handler_instance = S3Handler()
+    return _s3_handler_instance
