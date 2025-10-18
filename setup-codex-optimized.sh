@@ -340,8 +340,8 @@ echo_info "🌿 Ensuring repository is on main branch..."
 GIT_FETCH_LOG="$(mktemp /tmp/git-fetch.XXXXXX.log)"
 GIT_PULL_LOG="$(mktemp /tmp/git-pull.XXXXXX.log)"
 
-# EXPECTED_REPO_BRANCH: Environment variable to specify the target branch to checkout
-# Defaults to 'main' if not set. Use this to work with feature branches or other default branches.
+# TARGET_BRANCH: Internal variable for the target branch to checkout.
+# Set via the EXPECTED_REPO_BRANCH environment variable, or defaults to 'main' if not set.
 TARGET_BRANCH="${EXPECTED_REPO_BRANCH:-main}"
 
 if retry bash -c "git fetch origin ${TARGET_BRANCH} --tags >'$GIT_FETCH_LOG' 2>&1"; then
