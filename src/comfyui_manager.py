@@ -545,5 +545,11 @@ class ComfyUIManager:
         return True
 
 
-# Global ComfyUI manager instance
-comfyui_manager = ComfyUIManager()
+# Lazy singleton factory for ComfyUIManager
+_comfyui_manager_instance = None
+
+def get_comfyui_manager():
+    global _comfyui_manager_instance
+    if _comfyui_manager_instance is None:
+        _comfyui_manager_instance = ComfyUIManager()
+    return _comfyui_manager_instance
