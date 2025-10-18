@@ -36,7 +36,17 @@ class WorkflowProcessor:
         randomized_count = 0
 
         def _generate_random_seed():
-            """Generate a random seed value using getrandbits for better performance"""
+            """
+            Generate a random seed value using getrandbits for better performance.
+            
+            Returns:
+                int: Random seed in range 0 to 2^31-1 (2,147,483,647)
+                
+            Note:
+                Uses 31 bits (not 32) to ensure compatibility with signed 32-bit integers
+                used by ComfyUI nodes. This avoids potential overflow issues with nodes
+                that expect positive integers within the signed int32 range.
+            """
             return random.getrandbits(31)
 
         def _randomize_seeds_in_obj(obj, node_id=None, path=""):

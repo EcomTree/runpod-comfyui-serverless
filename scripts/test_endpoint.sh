@@ -5,8 +5,8 @@
 # Instead, create a copy of this file (e.g. test_endpoint_local.sh) for local testing.
 
 # Configuration - EDIT THESE VALUES
-ENDPOINT_ID="your-endpoint-id"
-API_KEY="your-runpod-api-key"
+ENDPOINT_ID=""
+API_KEY=""
 API_URL="https://api.runpod.ai/v2/${ENDPOINT_ID}/runsync"
 
 # Colors for output
@@ -33,13 +33,15 @@ check_jq() {
 
 # Function to validate required configuration
 validate_config() {
-    if [ -z "$ENDPOINT_ID" ] || [ "$ENDPOINT_ID" = "your-endpoint-id" ]; then
+    if [ -z "$ENDPOINT_ID" ]; then
         print_color $RED "❌ ENDPOINT_ID is not configured!"
+        print_color $YELLOW "💡 Please edit this script and set ENDPOINT_ID to your RunPod endpoint ID"
         return 1
     fi
 
-    if [ -z "$API_KEY" ] || [ "$API_KEY" = "your-runpod-api-key" ]; then
+    if [ -z "$API_KEY" ]; then
         print_color $RED "❌ API_KEY is not configured!"
+        print_color $YELLOW "💡 Please edit this script and set API_KEY to your RunPod API key"
         return 1
     fi
 

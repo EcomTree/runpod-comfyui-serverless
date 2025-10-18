@@ -79,7 +79,7 @@ class Config:
             value = os.getenv(key, default)
             return int(value)
         except (ValueError, TypeError) as e:
-            self.logger.warning(f"Invalid integer value for {key}: '{value}', using default: {default}")
+            print(f"[config] WARNING: Invalid integer value for {key}: '{value}', using default: {default}")
             return int(default)
 
     def get(self, key: str, default: Any = None) -> Any:
