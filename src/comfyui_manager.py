@@ -438,7 +438,6 @@ class ComfyUIManager:
 
     def find_generated_images(self, result: Dict[str, Any], workflow_start_time: float) -> List[Path]:
         """Find generated images from workflow result"""
-        from .config import config
 
         image_paths = []
         outputs = result.get("outputs", {})
