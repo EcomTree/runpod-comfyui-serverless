@@ -34,17 +34,13 @@ get_script_dir() {
 SCRIPT_DIR="$(get_script_dir)"
 
 if [[ -z "${REPO_BASENAME:-}" ]]; then
-    if [[ -n "${SCRIPT_DIR:-}" ]]; then
-        REPO_BASENAME="$(basename "${SCRIPT_DIR}")"
-    elif [[ -n "${0:-}" && "${0:-}" != "bash" && -f "${0:-}" ]]; then
-        REPO_BASENAME="$(basename "$(dirname "${0}")")"
-    else
+    # SCRIPT_DIR is always set (at minimum to '.'), so we can use it directly
+    REPO_BASENAME="$(basename "${SCRIPT_DIR}")"
+    
+    # Fallback if basename returns invalid values
+    if [[ -z "${REPO_BASENAME}" || "${REPO_BASENAME}" == "." || "${REPO_BASENAME}" == "/" ]]; then
         REPO_BASENAME="${DEFAULT_REPO_NAME}"
     fi
-fi
-
-if [[ -z "${REPO_BASENAME}" || "${REPO_BASENAME}" == "." || "${REPO_BASENAME}" == "/" ]]; then
-    REPO_BASENAME="${DEFAULT_REPO_NAME}"
 fi
 
 set -u

@@ -100,15 +100,34 @@ install_dependencies() {
 handle_git_status() {
     log_info "Checking git status..."
     
-    # Check for uncommitted changes
+    # Check if there are any changes (tracked or untracked)
+    local has_tracked_changes=false
+    local has_untracked_files=false
+    
+    # Check for tracked file changes (modified, deleted, etc.)
     if ! git diff --quiet || ! git diff --cached --quiet; then
+        has_tracked_changes=true
+    fi
+    
+    # Check for untracked files
+    if git ls-files --others --exclude-standard | grep -q .; then
+        has_untracked_files=true
+    fi
+    
+    # Process changes if any exist
+    if [[ "$has_tracked_changes" == true ]] || [[ "$has_untracked_files" == true ]]; then
         log_warning "Uncommitted changes detected"
         git status --short
         
-        # Add untracked files
-        if git ls-files --others --exclude-standard | grep -q .; then
+        # Add untracked files only if we also have tracked changes
+        # This prevents committing only untracked files without any real changes
+        if [[ "$has_untracked_files" == true ]] && [[ "$has_tracked_changes" == true ]]; then
             log_info "Adding untracked files..."
             git add .
+        elif [[ "$has_untracked_files" == true ]]; then
+            log_info "Only untracked files present - skipping auto-commit"
+            log_info "Use 'git add' manually if you want to commit these files"
+            return 0
         fi
         
         # Commit changes if there are staged changes
@@ -167,10 +186,12 @@ push_changes() {
     
     log_info "Pushing changes to origin/$current_branch..."
     
-    # Check if we have commits to push
-    if git rev-list --count origin/$current_branch..HEAD > /dev/null 2>&1; then
+    # Check if the remote branch exists
+    if git ls-remote --exit-code --heads origin "$current_branch" >/dev/null 2>&1; then
+        # Remote branch exists - check if we have commits to push
         local ahead_count
-        ahead_count=$(git rev-list --count origin/$current_branch..HEAD)
+        ahead_count=$(git rev-list --count origin/$current_branch..HEAD 2>/dev/null || echo "0")
+        
         if [[ "$ahead_count" -gt 0 ]]; then
             log_info "Branch is $ahead_count commits ahead of origin"
             git push origin "$current_branch"
@@ -179,8 +200,8 @@ push_changes() {
             log_success "No new commits to push"
         fi
     else
-        # First push, set upstream
-        log_info "First push, setting upstream..."
+        # Remote branch doesn't exist - first push, set upstream
+        log_info "Remote branch doesn't exist - setting upstream..."
         git push -u origin "$current_branch"
         log_success "Initial push completed with upstream set"
     fi
