@@ -10,6 +10,7 @@
 set -Ee
 set -o pipefail
 
+# Default repository name used when REPO_BASENAME cannot be determined from directory structure
 DEFAULT_REPO_NAME="runpod-comfyui-serverless"
 
 
