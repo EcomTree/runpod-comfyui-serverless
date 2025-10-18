@@ -44,7 +44,7 @@ if [[ -z "${REPO_BASENAME:-}" ]]; then
     REPO_BASENAME="$(basename "${SCRIPT_DIR}")"
     
     # Fallback if basename returns invalid values
-    if [[ -z "${REPO_BASENAME}" || "${REPO_BASENAME}" == "." || "${REPO_BASENAME}" == "/" ]]; then
+    if [[ "${REPO_BASENAME}" == "." || "${REPO_BASENAME}" == "/" ]]; then
         REPO_BASENAME="${DEFAULT_REPO_NAME}"
     fi
 fi
