@@ -7,8 +7,22 @@
 set -euo pipefail
 
 # Source common helpers
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/common-codex.sh"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-""}")" && pwd)"
+
+# Check if helper script exists and source it, otherwise use inline fallbacks
+if [[ -f "${SCRIPT_DIR}/common-codex.sh" ]]; then
+    # shellcheck disable=SC1091
+    source "${SCRIPT_DIR}/common-codex.sh"
+else
+    echo "⚠️  common-codex.sh not found, using inline fallback functions" >&2
+    command_exists() { command -v "$1" >/dev/null 2>&1; }
+    is_codex_environment() {
+        [ -n "${CODEX_CONTAINER:-}" ] || \
+        [ -n "${RUNPOD_POD_ID:-}" ] || \
+        [ -n "${CODEX_WORKSPACE:-}" ] || \
+        [ -d "/workspace" ]
+    }
+fi
 
 # Configuration
 PROJECT_NAME="runpod-comfyui-serverless"
