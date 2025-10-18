@@ -55,13 +55,12 @@ Only GPUs with **Ada Lovelace, Hopper, or Blackwell architecture** are supported
 
 ## 🛠️ Installation
 
-> **Codex Shortcut:**
+> **Quick Setup:**
 >
 > ```bash
-> curl -fsSL https://raw.githubusercontent.com/EcomTree/runpod-comfyui-serverless/main/setup-codex-optimized.sh | bash
+> # Download and run the unified setup script
+> curl -fsSL https://raw.githubusercontent.com/EcomTree/runpod-comfyui-serverless/main/scripts/setup.sh | bash
 > ```
->
-> This command sets everything up automatically in Codex.
 
 1. **Clone Repository**
    ```bash
@@ -69,12 +68,18 @@ Only GPUs with **Ada Lovelace, Hopper, or Blackwell architecture** are supported
    cd runpod-comfyui-serverless
    ```
 
-2. **Build Docker Image**
+2. **Setup Environment**
+   ```bash
+   # Run the setup script for automatic configuration
+   bash scripts/setup.sh
+   ```
+
+3. **Build Docker Image**
    ```bash
    docker build -t ecomtree/comfyui-serverless:latest -f Dockerfile .
    ```
 
-3. **Push Image to Docker Hub**
+4. **Push Image to Docker Hub**
    ```bash
    docker push ecomtree/comfyui-serverless:latest
    ```
@@ -237,7 +242,18 @@ Workflows are passed as JSON directly in the request. The handler expects the Co
 
 ## 🧪 Testing
 
-Test scripts are not included in the repository. Create your own test script:
+Use the included test script to validate your endpoint:
+
+```bash
+# Configure the test script
+cp scripts/test_endpoint.sh scripts/test_endpoint_local.sh
+# Edit scripts/test_endpoint_local.sh with your ENDPOINT_ID and API_KEY
+
+# Run tests
+bash scripts/test_endpoint_local.sh
+```
+
+**Note**: Never commit API keys or endpoint IDs to version control!
 
 ```bash
 #!/bin/bash
@@ -259,25 +275,46 @@ curl -X POST "$API_URL" \
 ## 🏗️ Architecture
 
 ```
-├── rp_handler.py          # Main handler for RunPod
-├── Dockerfile             # Serverless-ready Docker image definition
-├── .gitignore            # Git ignore rules
-└── README.md             # This file
+runpod-comfyui-serverless/
+├── src/                           # Source code modules
+│   ├── config.py                  # Configuration management
+│   ├── comfyui_manager.py         # ComfyUI server lifecycle
+│   ├── s3_handler.py              # S3 storage operations
+│   └── workflow_processor.py      # Workflow processing utilities
+├── scripts/                       # Setup and maintenance scripts
+│   ├── setup.sh                   # Unified setup script
+│   ├── common-codex.sh             # Shared helper functions
+│   └── test_endpoint.sh           # Testing utilities
+├── config/                        # Configuration files
+├── tests/                         # Test files
+├── rp_handler.py                  # Main RunPod handler
+├── Dockerfile                     # Serverless Docker image
+├── requirements.txt               # Python dependencies
+├── .env.example                   # Configuration template
+├── .gitignore                     # Git ignore rules
+└── README.md                      # This file
 ```
 
-### Handler Components
+### Handler Architecture
 
-- **handler()**: Main function for job processing
-- **_start_comfy()**: ComfyUI server management
-- **_run_workflow()**: Workflow execution via ComfyUI API
-- **_wait_for_completion()**: Monitoring of workflow execution
-- **_save_to_network_volume()**: Saving to RunPod Network Volume
-- **_ensure_volume_ready()**: Volume mount validation
+The handler is now organized into focused modules:
+
+- **src/config.py**: Centralized configuration management with environment variable parsing
+- **src/comfyui_manager.py**: ComfyUI server lifecycle, workflow execution, and model management
+- **src/s3_handler.py**: S3 storage operations with proper error handling and URL sanitization
+- **src/workflow_processor.py**: Workflow processing utilities including seed randomization
+- **rp_handler.py**: Main entry point that orchestrates all components
 
 ## 🚀 Deployment
 
-1. **Build and push Docker image**
+1. **Setup and Build**
    ```bash
+   # Clone and setup the project
+   git clone https://github.com/EcomTree/runpod-comfyui-serverless.git
+   cd runpod-comfyui-serverless
+   bash scripts/setup.sh
+
+   # Build Docker image
    docker build -t ecomtree/comfyui-serverless:latest -f Dockerfile .
    docker push ecomtree/comfyui-serverless:latest
    ```
@@ -285,16 +322,29 @@ curl -X POST "$API_URL" \
 2. **Create RunPod Serverless Endpoint**
    - Go to [RunPod Dashboard](https://runpod.io/console/serverless)
    - Create new Serverless Endpoint
-   - Docker Image: `ecomtree/comfyui-serverless:latest`
-   - Container Disk: at least 15GB
+   - **Docker Image**: `ecomtree/comfyui-serverless:latest`
+   - **Container Disk**: at least 15GB (20GB recommended for large models)
    - **GPU Filter**: CUDA 12.8 or 12.9 only!
    - **GPU**: RTX 4090, L40/L40S, H100/H200 or better (see GPU Requirements above)
-   - **Important**: Connect Network Volume with sufficient storage
+   - **Important**: Connect Network Volume with sufficient storage for models and outputs
 
-3. **Configure Endpoint**
-   - Set environment variables if needed
-   - Configure Max Workers and Idle Timeout
-   - Note down Endpoint ID and API Key
+3. **Configure Environment Variables**
+   Set the following environment variables in your RunPod endpoint:
+   ```bash
+   # S3 Storage (recommended)
+   S3_BUCKET=your-bucket-name
+   S3_ACCESS_KEY=your-access-key
+   S3_SECRET_KEY=your-secret-key
+   S3_ENDPOINT_URL=https://your-s3-endpoint.com
+
+   # Performance tuning
+   PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:1024,expandable_segments:True
+   TORCH_ALLOW_TF32_CUBLAS_OVERRIDE=1
+   ```
+
+4. **Note down credentials**
+   - **Endpoint ID**: Available in the RunPod dashboard
+   - **API Key**: Generated when creating the endpoint
 
 ## 📊 Performance
 
