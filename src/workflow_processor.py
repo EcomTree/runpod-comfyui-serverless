@@ -47,6 +47,8 @@ class WorkflowProcessor:
                 used by ComfyUI nodes. This avoids potential overflow issues with nodes
                 that expect positive integers within the signed int32 range.
             """
+            # getrandbits(31) is more efficient than randint(0, 2147483647) because it directly generates
+            # the required number of random bits without the overhead of range checking and conversion.
             return random.getrandbits(31)
 
         def _randomize_seeds_in_obj(obj, node_id=None, path=""):
