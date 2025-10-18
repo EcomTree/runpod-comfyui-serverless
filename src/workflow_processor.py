@@ -34,44 +34,6 @@ class WorkflowProcessor:
         # Create deep copy to avoid in-place modification
         workflow = copy.deepcopy(workflow)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         # Walk through all nodes in the workflow
         randomized_count = [0]  # Use a list to allow mutation in recursive calls
         for node_id, node_data in workflow.items():
@@ -123,14 +85,8 @@ class WorkflowProcessor:
                 else:
                     # Recursively process nested structures
                     self._randomize_seeds_in_obj(value, node_id=node_id, path=current_path, randomized_count=randomized_count)
-# Singleton accessor for WorkflowProcessor
-_workflow_processor_instance = None
 
-def get_workflow_processor():
-    global _workflow_processor_instance
-    if _workflow_processor_instance is None:
-        _workflow_processor_instance = WorkflowProcessor()
-    return _workflow_processor_instance
+        elif isinstance(obj, list):
             for idx, item in enumerate(obj):
                 current_path = f"{path}[{idx}]" if path else f"[{idx}]"
                 self._randomize_seeds_in_obj(item, node_id=node_id, path=current_path, randomized_count=randomized_count)
@@ -174,4 +130,6 @@ def get_workflow_processor():
 
 
 # Global workflow processor instance
+# Note: Singleton pattern is intentional for serverless functions.
+# RunPod reuses containers between invocations, making this optimal for performance.
 workflow_processor = WorkflowProcessor()

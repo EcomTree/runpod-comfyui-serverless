@@ -545,11 +545,11 @@ class ComfyUIManager:
         return True
 
 
-# Lazy singleton factory for ComfyUIManager
-_comfyui_manager_instance = None
-
-def get_comfyui_manager():
-    global _comfyui_manager_instance
-    if _comfyui_manager_instance is None:
-        _comfyui_manager_instance = ComfyUIManager()
-    return _comfyui_manager_instance
+# Global ComfyUI manager instance
+# Note: Singleton pattern is intentional for serverless functions.
+# RunPod reuses containers between invocations, making this optimal for:
+# - Performance: Avoids repeated initialization overhead
+# - State management: Maintains ComfyUI server process across requests
+# - Resource efficiency: Single process manager per container
+# Thread safety is not required as serverless invocations are single-threaded.
+comfyui_manager = ComfyUIManager()
