@@ -15,7 +15,7 @@ from botocore.exceptions import ClientError, NoCredentialsError
 from botocore.config import Config
 
 from .config import config
-from .logger import get_logger
+
 
 
 class S3Handler:
@@ -23,6 +23,7 @@ class S3Handler:
 
     def __init__(self):
         self._s3_client = None
+        from .logger import get_logger
         self.logger = get_logger('s3_handler')
 
     def _get_s3_client(self):
