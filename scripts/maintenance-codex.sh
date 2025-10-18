@@ -202,7 +202,7 @@ push_changes() {
     # Check if the remote branch exists
     if git ls-remote --exit-code --heads origin "$current_branch" >/dev/null 2>&1; then
         # Remote branch exists - check if we have commits to push
-        local ahead_count=$(git rev-list --count origin/$current_branch..HEAD 2>/dev/null || echo "0")
+        local ahead_count="$(git rev-list --count origin/$current_branch..HEAD 2>/dev/null || echo "0")"
         
         if [[ "$ahead_count" -gt 0 ]]; then
             log_info "Branch is $ahead_count commits ahead of origin"
