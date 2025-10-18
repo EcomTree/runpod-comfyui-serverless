@@ -79,7 +79,7 @@ class Config:
         try:
             return int(value)
         except (ValueError, TypeError):
-            print(f"[config] WARNING: Invalid integer value for {key}: '{value}', attempting to use default: {default}")
+            self.logger.warning(f"Invalid integer value for {key}: '{value}', using default: {default}")
             try:
                 return int(default)
             except (ValueError, TypeError):
