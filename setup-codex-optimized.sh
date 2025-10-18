@@ -49,6 +49,7 @@ SCRIPT_DIR="$(get_script_dir 2>/dev/null)" || {
 if [[ -z "${REPO_BASENAME:-}" ]]; then
     # SCRIPT_DIR is always set (at minimum to '.'), so we can use it directly
     REPO_BASENAME="$(basename "${SCRIPT_DIR}")"
+    # If REPO_BASENAME is empty or matches '.', '..', '/', or './', treat as invalid and use DEFAULT_REPO_NAME.
     [[ -z "${REPO_BASENAME}" || "${REPO_BASENAME}" =~ ^(\.\.?|\/|\./)$ ]] && REPO_BASENAME="${DEFAULT_REPO_NAME}"
 fi
 
