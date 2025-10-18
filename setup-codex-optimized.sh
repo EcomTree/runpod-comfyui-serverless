@@ -355,11 +355,11 @@ TARGET_BRANCH="${EXPECTED_REPO_BRANCH:-main}"
 
 if retry bash -c "git fetch origin ${TARGET_BRANCH} --tags >'$GIT_FETCH_LOG' 2>&1"; then
     if git rev-parse --verify HEAD >/dev/null 2>&1; then
-        CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo detached)"
+        CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo HEAD)"
         echo_info "📦 Repository currently on branch: ${CURRENT_BRANCH}"
         
         # Check if we need to switch to the target branch (skip if detached)
-        if [[ "${CURRENT_BRANCH}" != "detached" && "${CURRENT_BRANCH}" != "${TARGET_BRANCH}" ]]; then
+        if [[ "${CURRENT_BRANCH}" != "HEAD" && "${CURRENT_BRANCH}" != "${TARGET_BRANCH}" ]]; then
             echo_info "Switching from ${CURRENT_BRANCH} to ${TARGET_BRANCH}..."
             if git show-ref --verify --quiet "refs/heads/${TARGET_BRANCH}"; then
                 if ! git checkout "${TARGET_BRANCH}" 2>/dev/null; then
