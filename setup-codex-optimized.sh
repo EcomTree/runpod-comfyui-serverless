@@ -23,13 +23,11 @@ get_script_dir() {
 
     if is_source_bash_or_empty "$source"; then
         source="${0:-}"
+        if is_source_bash_or_empty "$source"; then
+            printf '%s\n' "$(pwd)"
+            return
+        fi
     fi
-
-    if is_source_bash_or_empty "$source"; then
-        printf '%s\n' "$(pwd)"
-        return
-    fi
-
     local dir
     dir="$(dirname "$source" 2>/dev/null || printf '.')"
 
