@@ -9,6 +9,9 @@ ENDPOINT_ID=""
 API_KEY=""
 API_URL="https://api.runpod.ai/v2/${ENDPOINT_ID}/runsync"
 
+# Test configuration
+TEST_IMAGE_FILENAME="${TEST_IMAGE_FILENAME:-input_image.png}"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -379,7 +382,7 @@ img2img_workflow='{
   },
   "10": {
     "inputs": {
-      "image": "input_image.png",
+      "image": "'$TEST_IMAGE_FILENAME'",
       "upload": "image"
     },
     "class_type": "LoadImage",

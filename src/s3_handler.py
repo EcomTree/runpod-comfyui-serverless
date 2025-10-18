@@ -23,8 +23,15 @@ class S3Handler:
 
     def __init__(self):
         self._s3_client = None
-        from .logger import get_logger
-        self.logger = get_logger('s3_handler')
+        self._logger = None
+    
+    @property
+    def logger(self):
+        """Lazy initialization of logger to avoid circular imports"""
+        if self._logger is None:
+            from .logger import get_logger
+            self._logger = get_logger('s3_handler')
+        return self._logger
 
     def _get_s3_client(self):
         """Create and return S3 client"""
