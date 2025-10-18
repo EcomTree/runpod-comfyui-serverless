@@ -128,8 +128,14 @@ class WorkflowProcessor:
                 else:
                     # Recursively process nested structures
                     self._randomize_seeds_in_obj(value, node_id=node_id, path=current_path, randomized_count=randomized_count)
+# Singleton accessor for WorkflowProcessor
+_workflow_processor_instance = None
 
-        elif isinstance(obj, list):
+def get_workflow_processor():
+    global _workflow_processor_instance
+    if _workflow_processor_instance is None:
+        _workflow_processor_instance = WorkflowProcessor()
+    return _workflow_processor_instance
             for idx, item in enumerate(obj):
                 current_path = f"{path}[{idx}]" if path else f"[{idx}]"
                 self._randomize_seeds_in_obj(item, node_id=node_id, path=current_path, randomized_count=randomized_count)
