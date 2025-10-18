@@ -13,6 +13,12 @@ class Config:
         self._config = {}
         self._load_config()
 
+    @property
+    def logger(self):
+        """Get logger for this module"""
+        from .logger import get_logger
+        return get_logger('config')
+
     def _load_config(self):
         """Load configuration from environment variables"""
         # ComfyUI Configuration

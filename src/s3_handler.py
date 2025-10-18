@@ -13,6 +13,7 @@ from botocore.exceptions import ClientError, NoCredentialsError
 from botocore.config import Config
 
 from .config import config
+from .logger import get_logger
 
 
 class S3Handler:
@@ -20,6 +21,7 @@ class S3Handler:
 
     def __init__(self):
         self._s3_client = None
+        self.logger = get_logger('s3_handler')
 
     def _get_s3_client(self):
         """Create and return S3 client"""
@@ -88,7 +90,7 @@ class S3Handler:
 
     def upload_file(self, file_path: Path, job_id: str) -> Dict[str, Any]:
         """Upload file to S3"""
-        print(f"☁️ Uploading to S3: {file_path.name}")
+        self.logger.info(f"Uploading to S3: {file_path.name}")
 
         try:
             s3_config = config.get_s3_config()
@@ -100,10 +102,10 @@ class S3Handler:
 
             # Determine content type
             content_type = self._get_content_type(file_path)
-            print(f"📋 Detected content type: {content_type}")
+            self.logger.debug(f"Detected content type: {content_type}")
 
             # Upload file
-            print(f"📤 Uploading to bucket: {s3_config['bucket']}, key: {s3_key}")
+            self.logger.debug(f"Uploading to bucket: {s3_config['bucket']}, key: {s3_key}")
             with open(file_path, "rb") as f:
                 s3_client.upload_fileobj(
                     f,
@@ -125,14 +127,14 @@ class S3Handler:
                     ExpiresIn=s3_config["signed_url_expiry"],
                 )
 
-            print(f"✅ S3 Upload successful: {s3_key}")
+            self.logger.info(f"S3 Upload successful: {s3_key}")
 
             safe_url = self._sanitize_url_for_logging(url)
-            print(f"🔗 URL: {safe_url}")
+            self.logger.info(f"Generated URL: {safe_url}")
 
             if config.get('debug_s3_urls', False):
-                print(f"🔍 DEBUG: Full URL with auth tokens: {url}")
-                print("⚠️  WARNING: Full S3 URLs contain sensitive authentication tokens!")
+                self.logger.warning(f"DEBUG: Full URL with auth tokens: {url}")
+                self.logger.warning("WARNING: Full S3 URLs contain sensitive authentication tokens!")
 
             return {
                 "success": True,
@@ -143,23 +145,23 @@ class S3Handler:
 
         except NoCredentialsError:
             error_msg = "S3 credentials not found or invalid"
-            print(f"❌ S3 Upload Error: {error_msg}")
+            self.logger.error(f"S3 Upload Error: {error_msg}")
             return {"success": False, "url": None, "error": error_msg}
 
         except ClientError as e:
             error_msg = f"S3 Client Error: {e}"
-            print(f"❌ S3 Upload Error: {error_msg}")
+            self.logger.error(f"S3 Upload Error: {error_msg}")
             return {"success": False, "url": None, "error": error_msg}
 
         except Exception as e:
             error_msg = f"Unexpected S3 Error: {e}"
-            print(f"❌ S3 Upload Error: {error_msg}")
-            print(f"📋 Traceback: {traceback.format_exc()}")
+            self.logger.error(f"S3 Upload Error: {error_msg}")
+            self.logger.debug(f"Traceback: {traceback.format_exc()}")
             return {"success": False, "url": None, "error": error_msg}
 
     def copy_to_volume(self, file_path: Path) -> Dict[str, Any]:
         """Copy file to volume output directory"""
-        print(f"📁 Copying file to Volume Output: {file_path}")
+        self.logger.info(f"Copying file to Volume Output: {file_path}")
 
         try:
             volume_config = config.get_volume_config()
@@ -173,14 +175,12 @@ class S3Handler:
             dest_filename = f"comfyui-{timestamp_str}-{unique_id}-{file_path.name}"
             dest_path = volume_output_dir / dest_filename
 
-            import shutil
-            import uuid
-
             # Copy file
+            import shutil
             shutil.copy2(file_path, dest_path)
 
-            print(f"✅ File successfully copied to: {dest_path}")
-            print(f"📊 File size: {dest_path.stat().st_size / (1024*1024):.2f} MB")
+            self.logger.info(f"File successfully copied to: {dest_path}")
+            self.logger.debug(f"File size: {dest_path.stat().st_size / (1024*1024):.2f} MB")
 
             return {
                 "success": True,
@@ -190,8 +190,8 @@ class S3Handler:
 
         except Exception as e:
             error_msg = f"Error copying {file_path.name}: {e}"
-            print(f"❌ Volume Copy Error: {error_msg}")
-            print(f"📋 Traceback: {traceback.format_exc()}")
+            self.logger.error(f"Volume Copy Error: {error_msg}")
+            self.logger.debug(f"Traceback: {traceback.format_exc()}")
             return {
                 "success": False,
                 "path": None,
