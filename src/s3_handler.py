@@ -142,8 +142,8 @@ class S3Handler:
             self.logger.info(f"Generated URL: {safe_url}")
 
             if config.get('debug_s3_urls', False):
-                self.logger.warning(f"DEBUG: Presigned S3 URL generated for key: {s3_key}. (Full URL not logged for security reasons)")
-                self.logger.warning("WARNING: Presigned S3 URLs contain sensitive authentication tokens and should not be logged.")
+                self.logger.warning("DEBUG: Logging full presigned S3 URL for debugging purposes. WARNING: Presigned S3 URLs contain sensitive authentication tokens and should not be shared or logged in production environments.")
+                self.logger.warning(f"Full Presigned S3 URL for key {s3_key}: {url}")
 
             return {
                 "success": True,
