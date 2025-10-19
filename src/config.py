@@ -86,7 +86,16 @@ class Config:
             except (ValueError, TypeError):
                 raise ValueError(f"[config] ERROR: Invalid default integer value for {key}: '{default}' (env value: '{value}')")
     def get(self, key: str, default: Any = None) -> Any:
-        """Get configuration value"""
+        """
+        Retrieve a configuration value by key.
+
+        Args:
+            key (str): The configuration key to retrieve.
+            default (Any, optional): The value to return if the key is not found. Defaults to None.
+
+        Returns:
+            Any: The value associated with the key, or the default if the key is not present.
+        """
         return self._config.get(key, default)
 
     def get_s3_config(self) -> Dict[str, Any]:
