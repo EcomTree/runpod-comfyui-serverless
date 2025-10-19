@@ -323,9 +323,16 @@ class GitManager:
     async def _run_git_command(self, args: List[str]) -> subprocess.CompletedProcess:
         """Run a git command."""
         cmd = ['git'] + args
-        return await asyncio.create_subprocess_exec(
+        process = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             cwd=self.repo_path
+        )
+        stdout, stderr = await process.communicate()
+        return subprocess.CompletedProcess(
+            args=cmd,
+            returncode=process.returncode,
+            stdout=stdout,
+            stderr=stderr
         )

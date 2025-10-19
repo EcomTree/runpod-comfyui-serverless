@@ -299,18 +299,37 @@ def analyze(
         try:
             if recursive:
                 results = asyncio.run(agent.code_analyzer.analyze_directory(path))
+                # Handle list of results for directory analysis
+                total_issues = sum(len(result.issues) for result in results)
+                total_files = len(results)
+                total_lines = sum(result.lines_of_code for result in results)
+                
+                progress.update(task, description="Analysis complete")
+                
+                console.print(f"[green]Analyzed {total_files} files with {total_lines} total lines of code[/green]")
+                
+                if total_issues > 0:
+                    console.print(f"[yellow]Found {total_issues} total issues across all files:[/yellow]")
+                    for result in results:
+                        if result.issues:
+                            console.print(f"[blue]  {result.file_path}:[/blue]")
+                            for issue in result.issues:
+                                console.print(f"    • {issue}")
+                else:
+                    console.print("[green]No issues found in any files![/green]")
             else:
                 results = asyncio.run(agent.code_analyzer.analyze_file(path))
-            
-            progress.update(task, description="Analysis complete")
-            
-            # Display results
-            if results.issues:
-                console.print(f"[yellow]Found {len(results.issues)} issues:[/yellow]")
-                for issue in results.issues:
-                    console.print(f"  • {issue}")
-            else:
-                console.print("[green]No issues found![/green]")
+                # Handle single result for file analysis
+                progress.update(task, description="Analysis complete")
+                
+                console.print(f"[green]Analyzed {results.file_path} ({results.lines_of_code} lines)[/green]")
+                
+                if results.issues:
+                    console.print(f"[yellow]Found {len(results.issues)} issues:[/yellow]")
+                    for issue in results.issues:
+                        console.print(f"  • {issue}")
+                else:
+                    console.print("[green]No issues found![/green]")
                 
         except Exception as e:
             console.print(f"[red]Analysis failed: {e}[/red]")
