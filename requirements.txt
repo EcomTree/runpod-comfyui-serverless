@@ -1,6 +1,24 @@
+# Core dependencies for RunPod ComfyUI Serverless Handler
 runpod>=1.7.0
 requests>=2.31.0
 boto3>=1.34.0
+
+# Image processing
 Pillow>=10.0.0
 numpy>=1.24.0
+
+# Additional utilities (used in ComfyUI and handler)
+pyyaml>=6.0
+scipy>=1.11.0
+opencv-python>=4.8.0
+
+# ComfyUI additional dependencies (matching Dockerfile)
+librosa>=0.10.0
+soundfile>=0.12.0
+av>=10.0.0
+moviepy>=1.0.3
+
+# Development and testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
 
