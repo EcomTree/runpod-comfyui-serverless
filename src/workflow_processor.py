@@ -129,7 +129,7 @@ class WorkflowProcessor:
         return list(workflow.keys())
 
 
-# Global workflow processor instance
-# Note: Singleton pattern is intentional for serverless functions.
-# RunPod reuses containers between invocations, making this optimal for performance.
-workflow_processor = WorkflowProcessor()
+# Factory function to create a new WorkflowProcessor instance
+def get_workflow_processor() -> WorkflowProcessor:
+    """Return a new instance of WorkflowProcessor."""
+    return WorkflowProcessor()
