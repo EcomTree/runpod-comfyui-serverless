@@ -339,6 +339,20 @@ setup_git() {
         log_warning "Could not set git default branch"
 }
 
+# Test handler import
+test_handler_import() {
+    PYTHONPATH="$(pwd):$PYTHONPATH" python3 - <<'EOF'
+import sys
+sys.path.insert(0, '.')
+try:
+    from rp_handler import handler
+    sys.exit(0)
+except Exception as e:
+    print(f"Import failed: {e}", file=sys.stderr)
+    sys.exit(1)
+EOF
+}
+
 # Validate setup
 validate_setup() {
     log_info "Validating setup..."
@@ -356,8 +370,7 @@ validate_setup() {
 
     # Check if handler can be imported
     if [ -f "rp_handler.py" ]; then
-        # Use PYTHONPATH to ensure imports work from current directory
-        if PYTHONPATH="$(pwd):$PYTHONPATH" python3 -c "import sys; sys.path.insert(0, '.'); from rp_handler import handler" 2>/dev/null; then
+        if test_handler_import 2>/dev/null; then
             log_success "✓ Handler importable"
         else
             log_warning "✗ Handler import issues"

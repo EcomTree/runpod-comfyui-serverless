@@ -11,13 +11,16 @@ class Config:
 
     def __init__(self):
         self._config = {}
+        self._logger = None
         self._load_config()
 
     @property
     def logger(self):
-        """Get logger for this module"""
-        from .logger import get_logger
-        return get_logger('config')
+        """Lazy initialization of logger to avoid circular imports"""
+        if self._logger is None:
+            from .logger import get_logger
+            self._logger = get_logger('config')
+        return self._logger
 
     def _load_config(self):
         """Load configuration from environment variables"""
