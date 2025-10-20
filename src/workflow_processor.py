@@ -91,6 +91,7 @@ class WorkflowProcessor:
                 current_path = f"{path}[{idx}]" if path else f"[{idx}]"
                 self._randomize_seeds_in_obj(item, node_id=node_id, path=current_path, randomized_count=randomized_count)
 
+
     def extract_checkpoint_names(self, object_info: Dict[str, Any]) -> List[str]:
         """Safely extract checkpoint names from ComfyUI object_info response"""
         try:
@@ -129,7 +130,5 @@ class WorkflowProcessor:
         return list(workflow.keys())
 
 
-# Factory function to create a new WorkflowProcessor instance
-def get_workflow_processor() -> WorkflowProcessor:
-    """Return a new instance of WorkflowProcessor."""
-    return WorkflowProcessor()
+# Global workflow processor instance
+workflow_processor = WorkflowProcessor()

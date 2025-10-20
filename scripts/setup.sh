@@ -209,9 +209,13 @@ setup_workspace() {
         cd /workspace
         WORKSPACE_DIR="/workspace"
     else
-        mkdir -p /workspace
-        cd /workspace
-        WORKSPACE_DIR="/workspace"
+        if mkdir -p /workspace; then
+            cd /workspace
+            WORKSPACE_DIR="/workspace"
+        else
+            log_error "Failed to create /workspace directory. Check permissions."
+            exit 1
+        fi
     fi
 
     log_success "Workspace ready: $(pwd)"
@@ -352,6 +356,7 @@ except Exception as e:
     sys.exit(1)
 EOF
 }
+
 
 # Validate setup
 validate_setup() {

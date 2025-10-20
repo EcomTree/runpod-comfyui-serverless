@@ -88,6 +88,7 @@ class Config:
                 return int(default)
             except (ValueError, TypeError):
                 raise ValueError(f"[config] ERROR: Invalid default integer value for {key}: '{default}' (env value: '{value}')")
+    
     def get(self, key: str, default: Any = None) -> Any:
         """
         Retrieve a configuration value by key.
