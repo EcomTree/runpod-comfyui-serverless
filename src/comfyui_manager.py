@@ -181,8 +181,13 @@ class ComfyUIManager:
             pass
         return False
 
-    def _wait_for_comfyui(self, max_retries: int = 600, delay: int = 2) -> bool:
+    def _wait_for_comfyui(self, max_retries: int = None, delay: int = 2) -> bool:
         """Wait until ComfyUI is ready"""
+        # Use configured timeout or default
+        if max_retries is None:
+            timeout_seconds = config.get('comfy_startup_timeout', 600)
+            max_retries = timeout_seconds // delay
+        
         base_url = config.get_comfyui_base_url()
         print(f"⏳ Waiting for ComfyUI to start (timeout: {max_retries * delay}s = {max_retries * delay / 60:.1f} min)...")
 
@@ -290,39 +295,38 @@ class ComfyUIManager:
         stderr_log = self._comfyui_logs_path / "comfyui_stderr.log"
 
         try:
-            stdout_file = open(stdout_log, "a")
-            stderr_file = open(stderr_log, "a")
+            with open(stdout_log, "a") as stdout_file, open(stderr_log, "a") as stderr_file:
 
-            self._comfyui_process = subprocess.Popen(
-                comfy_cmd,
-                stdout=stdout_file,
-                stderr=stderr_file,
-                cwd=str(self._comfyui_path)
-            )
+                self._comfyui_process = subprocess.Popen(
+                    comfy_cmd,
+                    stdout=stdout_file,
+                    stderr=stderr_file,
+                    cwd=str(self._comfyui_path)
+                )
 
-            print(f"📋 ComfyUI process started (PID: {self._comfyui_process.pid})")
-            print(f"📝 Logs: stdout={stdout_log}, stderr={stderr_log}")
+                print(f"📋 ComfyUI process started (PID: {self._comfyui_process.pid})")
+                print(f"📝 Logs: stdout={stdout_log}, stderr={stderr_log}")
 
-            # Wait until ComfyUI is ready
-            if not self._wait_for_comfyui():
-                print("❌ ComfyUI failed to start, check logs for details")
+                # Wait until ComfyUI is ready
+                if not self._wait_for_comfyui():
+                    print("❌ ComfyUI failed to start, check logs for details")
 
-                try:
-                    with open(stderr_log, "r") as f:
-                        lines = f.readlines()
-                        last_lines = lines[-50:] if len(lines) > 50 else lines
-                        print("=" * 60)
-                        print("📋 Last 50 lines of ComfyUI stderr:")
-                        print("=" * 60)
-                        for line in last_lines:
-                            print(line.rstrip())
-                        print("=" * 60)
-                except Exception as e:
-                    print(f"⚠️ Could not read stderr log: {e}")
+                    try:
+                        with open(stderr_log, "r") as f:
+                            lines = f.readlines()
+                            last_lines = lines[-50:] if len(lines) > 50 else lines
+                            print("=" * 60)
+                            print("📋 Last 50 lines of ComfyUI stderr:")
+                            print("=" * 60)
+                            for line in last_lines:
+                                print(line.rstrip())
+                            print("=" * 60)
+                    except Exception as e:
+                        print(f"⚠️ Could not read stderr log: {e}")
 
-                return False
+                    return False
 
-            return True
+                return True
 
         except Exception as e:
             print(f"❌ Failed to start ComfyUI: {e}")
@@ -438,7 +442,6 @@ class ComfyUIManager:
 
     def find_generated_images(self, result: Dict[str, Any], workflow_start_time: float) -> List[Path]:
         """Find generated images from workflow result"""
-        from .config import config
 
         image_paths = []
         outputs = result.get("outputs", {})
@@ -543,4 +546,10 @@ class ComfyUIManager:
 
 
 # Global ComfyUI manager instance
+# Note: Singleton pattern is intentional for serverless functions.
+# RunPod reuses containers between invocations, making this optimal for:
+# - Performance: Avoids repeated initialization overhead
+# - State management: Maintains ComfyUI server process across requests
+# - Resource efficiency: Single process manager per container
+# Thread safety is not required as serverless invocations are single-threaded.
 comfyui_manager = ComfyUIManager()

@@ -59,11 +59,16 @@ class ComfyUILogger:
         # Set logger level
         self.logger.setLevel(log_level)
 
-        # Prevent duplicate messages from libraries
-        logging.getLogger('urllib3').setLevel(logging.WARNING)
-        logging.getLogger('requests').setLevel(logging.WARNING)
-        logging.getLogger('boto3').setLevel(logging.WARNING)
-        logging.getLogger('botocore').setLevel(logging.WARNING)
+        # Prevent duplicate messages from libraries (configurable via env vars)
+        urllib3_level = getattr(logging, os.getenv('LOG_LEVEL_URLLIB3', 'WARNING').upper(), logging.WARNING)
+        requests_level = getattr(logging, os.getenv('LOG_LEVEL_REQUESTS', 'WARNING').upper(), logging.WARNING)
+        boto3_level = getattr(logging, os.getenv('LOG_LEVEL_BOTO3', 'WARNING').upper(), logging.WARNING)
+        botocore_level = getattr(logging, os.getenv('LOG_LEVEL_BOTOCORE', 'WARNING').upper(), logging.WARNING)
+        
+        logging.getLogger('urllib3').setLevel(urllib3_level)
+        logging.getLogger('requests').setLevel(requests_level)
+        logging.getLogger('boto3').setLevel(boto3_level)
+        logging.getLogger('botocore').setLevel(botocore_level)
 
     def get_logger(self, name: str) -> logging.Logger:
         """Get a logger with the specified name"""

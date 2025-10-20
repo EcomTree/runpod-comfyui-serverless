@@ -5,9 +5,13 @@
 # Instead, create a copy of this file (e.g. test_endpoint_local.sh) for local testing.
 
 # Configuration - EDIT THESE VALUES
-ENDPOINT_ID="your-endpoint-id"
-API_KEY="your-runpod-api-key"
+ENDPOINT_ID=""
+API_KEY=""
 API_URL="https://api.runpod.ai/v2/${ENDPOINT_ID}/runsync"
+
+# Test configuration
+TEST_IMAGE_FILENAME="${TEST_IMAGE_FILENAME:-input_image.png}"
+
 
 # Colors for output
 RED='\033[0;31m'
@@ -33,13 +37,15 @@ check_jq() {
 
 # Function to validate required configuration
 validate_config() {
-    if [ -z "$ENDPOINT_ID" ] || [ "$ENDPOINT_ID" = "your-endpoint-id" ]; then
+    if [ -z "$ENDPOINT_ID" ]; then
         print_color $RED "❌ ENDPOINT_ID is not configured!"
+        print_color $YELLOW "💡 Please edit this script and set ENDPOINT_ID to your RunPod endpoint ID"
         return 1
     fi
 
-    if [ -z "$API_KEY" ] || [ "$API_KEY" = "your-runpod-api-key" ]; then
+    if [ -z "$API_KEY" ]; then
         print_color $RED "❌ API_KEY is not configured!"
+        print_color $YELLOW "💡 Please edit this script and set API_KEY to your RunPod API key"
         return 1
     fi
 
@@ -377,7 +383,7 @@ img2img_workflow='{
   },
   "10": {
     "inputs": {
-      "image": "input_image.png",
+      "image": "'$TEST_IMAGE_FILENAME'",
       "upload": "image"
     },
     "class_type": "LoadImage",
@@ -393,4 +399,3 @@ print_color $YELLOW "💡 Tips:"
 print_color $YELLOW "   • Check the generated images in your configured storage (S3 or Network Volume)"
 print_color $YELLOW "   • Image URLs are provided in the 'links' field of the response"
 print_color $YELLOW "   • For debugging, check ComfyUI logs in the container"
-

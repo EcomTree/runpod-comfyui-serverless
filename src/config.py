@@ -11,20 +11,24 @@ class Config:
 
     def __init__(self):
         self._config = {}
+        self._logger = None
         self._load_config()
 
     @property
     def logger(self):
-        """Get logger for this module"""
-        from .logger import get_logger
-        return get_logger('config')
+        """Lazy initialization of logger to avoid circular imports"""
+        if self._logger is None:
+            from .logger import get_logger
+            self._logger = get_logger('config')
+        return self._logger
 
     def _load_config(self):
         """Load configuration from environment variables"""
         # ComfyUI Configuration
         self._config.update({
-            'comfy_port': int(os.getenv('COMFY_PORT', '8188')),
+            'comfy_port': self._parse_int_env('COMFY_PORT', '8188'),
             'comfy_host': os.getenv('COMFY_HOST', '127.0.0.1'),
+            'comfy_startup_timeout': self._parse_int_env('COMFYUI_STARTUP_TIMEOUT', '600'),  # Default: 10 minutes
             'randomize_seeds': self._parse_bool_env('RANDOMIZE_SEEDS', 'true'),
             'comfy_refresh_models': self._parse_bool_env('COMFYUI_REFRESH_MODELS', 'true'),
             'cleanup_temp_files': self._parse_bool_env('CLEANUP_TEMP_FILES', 'true'),
@@ -49,7 +53,7 @@ class Config:
         self._config['volume'] = {
             'runpod_volume_path': Path(os.getenv('RUNPOD_VOLUME_PATH', '/runpod-volume')),
             'runpod_output_dir': os.getenv('RUNPOD_OUTPUT_DIR'),
-            'network_volume_timeout': int(os.getenv('NETWORK_VOLUME_TIMEOUT', '15')),
+            'network_volume_timeout': self._parse_int_env('NETWORK_VOLUME_TIMEOUT', '15'),
         }
 
         # Workspace Configuration
@@ -73,8 +77,29 @@ class Config:
         value = os.getenv(key, default).lower()
         return value in {'1', 'true', 'yes', 'on'}
 
+    def _parse_int_env(self, key: str, default: str) -> int:
+        """Safely parse environment variable as integer"""
+        value = os.getenv(key, default)
+        try:
+            return int(value)
+        except (ValueError, TypeError):
+            self.logger.warning(f"Invalid integer value for {key}: '{value}', using default: {default}")
+            try:
+                return int(default)
+            except (ValueError, TypeError):
+                raise ValueError(f"[config] ERROR: Invalid default integer value for {key}: '{default}' (env value: '{value}')")
+    
     def get(self, key: str, default: Any = None) -> Any:
-        """Get configuration value"""
+        """
+        Retrieve a configuration value by key.
+
+        Args:
+            key (str): The configuration key to retrieve.
+            default (Any, optional): The value to return if the key is not found. Defaults to None.
+
+        Returns:
+            Any: The value associated with the key, or the default if the key is not present.
+        """
         return self._config.get(key, default)
 
     def get_s3_config(self) -> Dict[str, Any]:
@@ -115,4 +140,6 @@ class Config:
 
 
 # Global configuration instance
+# Note: Singleton pattern is intentional for serverless functions.
+# Configuration is loaded once at container startup and reused across invocations.
 config = Config()

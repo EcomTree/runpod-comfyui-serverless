@@ -339,22 +339,45 @@ setup_git() {
         log_warning "Could not set git default branch"
 }
 
+# Test handler import
+test_handler_import() {
+    PYTHONPATH="$(pwd):$PYTHONPATH" python3 - <<'EOF'
+import sys
+sys.path.insert(0, '.')
+try:
+    from rp_handler import handler
+    sys.exit(0)
+except Exception as e:
+    print(f"Import failed: {e}", file=sys.stderr)
+    sys.exit(1)
+EOF
+}
+
+
 # Validate setup
 validate_setup() {
     log_info "Validating setup..."
 
     # Check Python syntax
-    if python3 -m py_compile rp_handler.py 2>/dev/null; then
-        log_success "✓ Python syntax valid"
+    if [ -f "rp_handler.py" ]; then
+        if python3 -m py_compile rp_handler.py 2>/dev/null; then
+            log_success "✓ Python syntax valid"
+        else
+            log_warning "✗ Python syntax issues detected"
+        fi
     else
-        log_warning "✗ Python syntax issues detected"
+        log_warning "✗ rp_handler.py not found in current directory"
     fi
 
     # Check if handler can be imported
-    if python3 -c "from rp_handler import handler" 2>/dev/null; then
-        log_success "✓ Handler importable"
+    if [ -f "rp_handler.py" ]; then
+        if test_handler_import 2>/dev/null; then
+            log_success "✓ Handler importable"
+        else
+            log_warning "✗ Handler import issues"
+        fi
     else
-        log_warning "✗ Handler import issues"
+        log_warning "✗ Cannot test handler import - rp_handler.py not found"
     fi
 
     # Check required files

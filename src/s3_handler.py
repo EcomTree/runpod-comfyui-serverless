@@ -3,7 +3,9 @@ S3 storage handler for RunPod ComfyUI Serverless
 """
 import datetime
 import mimetypes
+import shutil
 import traceback
+import uuid
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple
 from urllib.parse import urlparse, urlunparse
@@ -13,7 +15,6 @@ from botocore.exceptions import ClientError, NoCredentialsError
 from botocore.config import Config
 
 from .config import config
-from .logger import get_logger
 
 
 class S3Handler:
@@ -21,7 +22,15 @@ class S3Handler:
 
     def __init__(self):
         self._s3_client = None
-        self.logger = get_logger('s3_handler')
+        self._logger = None
+    
+    @property
+    def logger(self):
+        """Lazy initialization of logger to avoid circular imports"""
+        if self._logger is None:
+            from .logger import get_logger
+            self._logger = get_logger('s3_handler')
+        return self._logger
 
     def _get_s3_client(self):
         """Create and return S3 client"""
@@ -133,8 +142,8 @@ class S3Handler:
             self.logger.info(f"Generated URL: {safe_url}")
 
             if config.get('debug_s3_urls', False):
-                self.logger.warning(f"DEBUG: Full URL with auth tokens: {url}")
-                self.logger.warning("WARNING: Full S3 URLs contain sensitive authentication tokens!")
+                self.logger.warning("DEBUG: Logging full presigned S3 URL for debugging purposes. WARNING: Presigned S3 URLs contain sensitive authentication tokens and should not be shared or logged in production environments.")
+                self.logger.warning(f"Full Presigned S3 URL for key {s3_key}: {url}")
 
             return {
                 "success": True,
@@ -176,7 +185,6 @@ class S3Handler:
             dest_path = volume_output_dir / dest_filename
 
             # Copy file
-            import shutil
             shutil.copy2(file_path, dest_path)
 
             self.logger.info(f"File successfully copied to: {dest_path}")
@@ -200,4 +208,6 @@ class S3Handler:
 
 
 # Global S3 handler instance
+# Note: Singleton pattern is intentional for serverless functions.
+# RunPod reuses containers between invocations, optimizing S3 client reuse.
 s3_handler = S3Handler()
