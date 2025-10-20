@@ -112,7 +112,7 @@ ENV PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:1024,expandable_segments:True \
 # Health Check
 # ------------------------------------------------------------
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD python3 -c "import requests; requests.get('http://127.0.0.1:8188/system_stats', timeout=5)" || exit 1
+    CMD python3 -c "import requests; requests.get('http://127.0.0.1:8188/system_stats', timeout=5)"
 
 # ------------------------------------------------------------
 # Start Command
