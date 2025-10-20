@@ -98,8 +98,7 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
                 error_details = "; ".join([f["error"] for f in failed_uploads])
                 error_message = "Failed to upload all images to S3 and no volume paths available: " + error_details
             else:
-                error_details = "Failed to save all images to volume"
-                error_message = "Failed to upload all images and no volume paths available: " + error_details
+                error_message = "Failed to upload all images and no volume paths available: Failed to save all images to volume"
             return {"error": error_message}
 
         # Determine storage type
