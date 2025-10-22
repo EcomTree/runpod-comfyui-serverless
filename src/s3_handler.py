@@ -23,6 +23,7 @@ class S3Handler:
     def __init__(self):
         self._s3_client = None
         self._logger = None
+        self._debug_warning_logged = False
     
     @property
     def logger(self):
@@ -79,8 +80,16 @@ class S3Handler:
 
         return mime_type
 
-    def _sanitize_url_for_logging(self, url: str) -> str:
+    def sanitize_url_for_logging(self, url: str) -> str:
         """Sanitize URL for safe logging by removing sensitive query parameters"""
+        # If debug mode is enabled, return full URL without sanitization
+        if config.get('debug_s3_urls', False):
+            # Log a warning once when debug mode is active
+            if not self._debug_warning_logged:
+                self.logger.warning("⚠️ DEBUG_S3_URLS is enabled - full presigned URLs with authentication tokens will be logged. This should only be used in development environments!")
+                self._debug_warning_logged = True
+            return url
+        
         try:
             parsed = urlparse(url)
 
@@ -138,12 +147,8 @@ class S3Handler:
 
             self.logger.info(f"S3 Upload successful: {s3_key}")
 
-            safe_url = self._sanitize_url_for_logging(url)
+            safe_url = self.sanitize_url_for_logging(url)
             self.logger.info(f"Generated URL: {safe_url}")
-
-            if config.get('debug_s3_urls', False):
-                self.logger.warning("DEBUG: Logging full presigned S3 URL for debugging purposes. WARNING: Presigned S3 URLs contain sensitive authentication tokens and should not be shared or logged in production environments.")
-                self.logger.warning(f"Full Presigned S3 URL for key {s3_key}: {url}")
 
             return {
                 "success": True,

@@ -1,38 +1,38 @@
 # Setup Scripts Overview
 
-This repository contains a setup script for Codex Web UI environment configuration.
+This repository contains setup scripts for Codex Web UI and local environment configuration.
 
-## 🌐 setup-codex-optimized.sh - For Codex Web UI
+## 🌐 scripts/setup.sh - Unified Setup Script
 
-**Use this when:** Working with the project in the **Codex Web UI**
+**Use this when:** Working with the project in **Codex Web UI** or **local development**
 
 ### Features:
 - ✅ **Fast & lightweight** (~30 seconds)
-- ✅ No virtual environment needed (not necessary in Codex)
-- ✅ Only essential packages (runpod, requests, boto3, Pillow, numpy)
-- ✅ Optimized for pre-installed environment (Python 3.12, Node.js 20, etc.)
+- ✅ Automatic environment detection (Codex, RunPod, local)
+- ✅ Essential packages (runpod, requests, boto3, Pillow, numpy)
+- ✅ Optimized for cloud and local environments
 - ✅ Creates `.env.example` for configuration
+- ✅ Idempotent (can run multiple times safely)
 
 ### Usage in Codex:
 
 **Option A - Direct from repo:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/EcomTree/runpod-comfyui-serverless/main/setup-codex-optimized.sh | bash
+curl -fsSL https://raw.githubusercontent.com/EcomTree/runpod-comfyui-serverless/main/scripts/setup.sh | bash
 ```
 
 **Option B - After cloning:**
 ```bash
 git clone https://github.com/EcomTree/runpod-comfyui-serverless.git /workspace/runpod-comfyui-serverless
 cd /workspace/runpod-comfyui-serverless
-chmod +x setup-codex-optimized.sh
-./setup-codex-optimized.sh
+bash scripts/setup.sh
 ```
 
 ### Add to Codex Web UI:
 
 Under **"Setup Script"** → **"Manual"**:
 ```bash
-git clone https://github.com/EcomTree/runpod-comfyui-serverless.git /workspace/runpod-comfyui-serverless && cd /workspace/runpod-comfyui-serverless && chmod +x setup-codex-optimized.sh && ./setup-codex-optimized.sh
+curl -fsSL https://raw.githubusercontent.com/EcomTree/runpod-comfyui-serverless/main/scripts/setup.sh | bash
 ```
 
 📖 **Complete guide:** See `CODEX_SETUP.md`
@@ -81,8 +81,8 @@ For local development on your Mac/PC, you can:
 
 | Scenario | Approach | Reason |
 |----------|----------|--------|
-| 🌐 Codex Web UI | `setup-codex-optimized.sh` | Fast, lightweight, optimized for cloud |
-| 💻 Local Development | Manual setup | Full control, custom configuration |
+| 🌐 Codex Web UI | `scripts/setup.sh` | Fast, lightweight, optimized for cloud |
+| 💻 Local Development | `scripts/setup.sh` or manual | Full control, automatic detection |
 | 🐳 Docker Build Only | None needed | Dockerfile has everything |
 | 🚀 RunPod Serverless | None needed | Container deployed directly |
 
@@ -97,11 +97,11 @@ For local development on your Mac/PC, you can:
 
 ## 🆘 Troubleshooting
 
-### Codex: "setup-codex-optimized.sh not found"
+### Codex: "setup.sh not found"
 ```bash
 # Make sure you're in the right directory:
 cd /workspace/runpod-comfyui-serverless
-ls -la setup-codex-optimized.sh
+ls -la scripts/setup.sh
 
 # If not present, clone again:
 git clone https://github.com/EcomTree/runpod-comfyui-serverless.git
@@ -109,8 +109,8 @@ git clone https://github.com/EcomTree/runpod-comfyui-serverless.git
 
 ### Local: "Permission denied"
 ```bash
-chmod +x setup-codex-optimized.sh
-./setup-codex-optimized.sh
+chmod +x scripts/setup.sh
+bash scripts/setup.sh
 ```
 
 ### "Python version too old"

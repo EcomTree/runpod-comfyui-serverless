@@ -114,6 +114,12 @@ The handler supports the following environment variables:
 
 **Note:** When S3 is configured, it will be used automatically. The Network Volume serves as fallback.
 
+#### Debugging & Logging
+- `DEBUG_S3_URLS`: Log full presigned URLs including authentication tokens (default: false)
+  - **⚠️ Security Warning:** Only enable in development! Presigned URLs contain sensitive tokens
+  - When disabled, URLs in logs show path only with note: `[presigned - query params redacted for security]`
+  - See [URL_LOGGING.md](./URL_LOGGING.md) for detailed information
+
 ### Workflow Configuration
 
 Workflows are passed as JSON directly in the request. The handler expects the ComfyUI workflow format.
