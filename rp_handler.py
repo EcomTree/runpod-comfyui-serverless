@@ -141,6 +141,10 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
         if volume_paths:
             print(f"📦 Images saved to volume: {volume_paths}")
 
+        # Log all output URLs
+        for idx, url in enumerate(output_urls, 1):
+            print(f"🔗 URL {idx}/{len(output_urls)}: {url}")
+
         return response
 
     except Exception as e:

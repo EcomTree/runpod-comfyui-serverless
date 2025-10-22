@@ -81,6 +81,10 @@ class S3Handler:
 
     def _sanitize_url_for_logging(self, url: str) -> str:
         """Sanitize URL for safe logging by removing sensitive query parameters"""
+        # If debug mode is enabled, return full URL without sanitization
+        if config.get('debug_s3_urls', False):
+            return url
+        
         try:
             parsed = urlparse(url)
 
@@ -140,10 +144,6 @@ class S3Handler:
 
             safe_url = self._sanitize_url_for_logging(url)
             self.logger.info(f"Generated URL: {safe_url}")
-
-            if config.get('debug_s3_urls', False):
-                self.logger.warning("DEBUG: Logging full presigned S3 URL for debugging purposes. WARNING: Presigned S3 URLs contain sensitive authentication tokens and should not be shared or logged in production environments.")
-                self.logger.warning(f"Full Presigned S3 URL for key {s3_key}: {url}")
 
             return {
                 "success": True,
