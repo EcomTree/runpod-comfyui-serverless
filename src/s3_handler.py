@@ -80,7 +80,7 @@ class S3Handler:
 
         return mime_type
 
-    def _sanitize_url_for_logging(self, url: str) -> str:
+    def sanitize_url_for_logging(self, url: str) -> str:
         """Sanitize URL for safe logging by removing sensitive query parameters"""
         # If debug mode is enabled, return full URL without sanitization
         if config.get('debug_s3_urls', False):
@@ -147,7 +147,7 @@ class S3Handler:
 
             self.logger.info(f"S3 Upload successful: {s3_key}")
 
-            safe_url = self._sanitize_url_for_logging(url)
+            safe_url = self.sanitize_url_for_logging(url)
             self.logger.info(f"Generated URL: {safe_url}")
 
             return {

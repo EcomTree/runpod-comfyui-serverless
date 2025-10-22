@@ -143,7 +143,7 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
 
         # Log all output URLs (sanitized for security)
         for idx, url in enumerate(output_urls, 1):
-            sanitized_url = s3_handler._sanitize_url_for_logging(url)
+            sanitized_url = s3_handler.sanitize_url_for_logging(url)
             print(f"🔗 URL {idx}/{len(output_urls)}: {sanitized_url}")
 
         return response
