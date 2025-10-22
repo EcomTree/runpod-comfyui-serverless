@@ -141,9 +141,10 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
         if volume_paths:
             print(f"📦 Images saved to volume: {volume_paths}")
 
-        # Log all output URLs
+        # Log all output URLs (sanitized for security)
         for idx, url in enumerate(output_urls, 1):
-            print(f"🔗 URL {idx}/{len(output_urls)}: {url}")
+            sanitized_url = s3_handler._sanitize_url_for_logging(url)
+            print(f"🔗 URL {idx}/{len(output_urls)}: {sanitized_url}")
 
         return response
 
