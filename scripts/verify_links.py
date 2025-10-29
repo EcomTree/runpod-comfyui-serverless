@@ -55,7 +55,7 @@ def main() -> int:
     fail = 0
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.concurrency) as ex:
         for name, success, status, msg in ex.map(check_url, models):
-            status_str = status if status else "-"
+            status_str = str(status) if status is not None else "-"
             if success:
                 ok += 1
                 print(f"✅ {name}: {status_str}")

@@ -39,19 +39,25 @@ for ((i=1; i<${#LINES[@]}; i++)); do
   [[ "$marker" == "NODE" ]] || continue
   dest="$INSTALL_ROOT/$name"
   if [[ -d "$dest/.git" ]]; then
-    echo "⤴️  Updating $name"
-    git -C "$dest" pull --ff-only || true
-  elif [[ -d "$dest" ]]; then
-    # Directory exists but is not a valid git repo - validate and potentially reclone
-    echo "📁 Directory exists for $name - validating..."
-    if [[ -d "$dest/.git" ]] && git -C "$dest" rev-parse HEAD >/dev/null 2>&1; then
-      echo "✅ Valid git repository, reusing $name"
+    if git -C "$dest" rev-parse HEAD >/dev/null 2>&1; then
+      echo "⤴️  Updating $name"
+      if ! git -C "$dest" pull --ff-only; then
+        echo "⚠️  git pull failed for $name, recloning..."
+        rm -rf "$dest"
+        echo "⬇️  Cloning $name from $repo"
+        git clone --filter=blob:none "$repo" "$dest"
+      fi
     else
-      echo "⚠️ Directory is not a valid git repository, removing and recloning..."
+      echo "⚠️  Detected invalid git repository for $name, recloning..."
       rm -rf "$dest"
       echo "⬇️  Cloning $name from $repo"
       git clone --filter=blob:none "$repo" "$dest"
     fi
+  elif [[ -d "$dest" ]]; then
+    echo "⚠️ Directory exists for $name but is not a git repo. Removing and recloning..."
+    rm -rf "$dest"
+    echo "⬇️  Cloning $name from $repo"
+    git clone --filter=blob:none "$repo" "$dest"
   else
     echo "⬇️  Cloning $name from $repo"
     git clone --filter=blob:none "$repo" "$dest"

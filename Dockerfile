@@ -34,9 +34,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         libsm6 \
         libxext6 \
         libxrender-dev \
-        libgomp1 \
-        aiohttp \
-        aiofiles && \
+        libgomp1 && \
     apt-get clean && \
     rm -rf /tmp/* /var/tmp/*
 
@@ -91,7 +89,7 @@ RUN --mount=type=cache,target=/root/.cache/pip pip install --no-cache-dir libros
 # ------------------------------------------------------------
 COPY scripts/optimize_performance.py /workspace/scripts/optimize_performance.py
 RUN chmod +x /workspace/scripts/optimize_performance.py && \
-    python3 /workspace/scripts/optimize_performance.py --comfyui-path /workspace/ComfyUI || true
+    python3 /workspace/scripts/optimize_performance.py --comfyui-path /workspace/ComfyUI
 
 # ------------------------------------------------------------
 # Custom Nodes Installation
@@ -165,6 +163,10 @@ RUN --mount=type=cache,target=/root/.cache/pip pip install --no-cache-dir --upgr
 
 # Copy prepared ComfyUI from builder stage
 COPY --from=builder /workspace/ComfyUI /workspace/ComfyUI
+
+# Ensure ComfyUI runtime dependencies are installed in the final image
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir $(grep -v -E "^torch([^a-z]|$)|torchvision|torchaudio" /workspace/ComfyUI/requirements.txt | grep -v "^#" | grep -v "^$" | tr '\n' ' ')
 
 # Permissions and executables
 RUN chmod +x /workspace/scripts/*.sh || true

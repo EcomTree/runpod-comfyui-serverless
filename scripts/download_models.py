@@ -23,7 +23,7 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import Dict, Any, Iterable, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import requests
 
@@ -149,7 +149,9 @@ def main() -> int:
     args = ap.parse_args()
 
     manifest = load_manifest(Path(args.config))
-    root = Path(args.root) if args.root else Path(manifest.get("models_root", "/workspace/ComfyUI/models"))
+    manifest_root = manifest.get("models_root", "/workspace/ComfyUI/models")
+    root_source = args.root if args.root else manifest_root
+    root = Path(os.path.expandvars(root_source)).expanduser()
     concurrency = args.concurrency if args.concurrency else int(manifest.get("concurrency", 4))
     timeout = args.timeout if args.timeout else int(manifest.get("timeout_seconds", 3600))
 
@@ -165,7 +167,7 @@ def main() -> int:
     print(f"Models root: {root}")
     print(f"Total models: {len(models)} | Concurrency: {concurrency}")
 
-    results: list[Tuple[str, bool, Optional[str]]] = []
+    results: List[Tuple[str, bool, Optional[str]]] = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as ex:
         futs = [ex.submit(process_entry, root, m, args.force, timeout) for m in models]
         for fut in concurrent.futures.as_completed(futs):

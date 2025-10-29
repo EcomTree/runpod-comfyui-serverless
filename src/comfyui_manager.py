@@ -8,6 +8,7 @@ import subprocess
 import time
 import traceback
 import uuid
+import sys
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 
@@ -327,7 +328,7 @@ class ComfyUIManager:
         
         # Build ComfyUI command with base arguments
         comfy_cmd = [
-            "python", str(self._comfyui_path / "main.py"),
+            sys.executable, str(self._comfyui_path / "main.py"),
             "--listen", config.get('comfy_host', '127.0.0.1'),
             "--port", str(config.get('comfy_port', 8188)),
             "--normalvram",
@@ -412,7 +413,8 @@ class ComfyUIManager:
                         requests.get(f"{base_url}/object_info", timeout=5)
                         print("🔥 Startup warmup: object_info primed")
                     except requests.exceptions.RequestException:
-                        # Warmup request failure is non-critical; safe to ignore.
+                        # Warmup request failure is non-critical and does not affect server startup.
+                        # It is safe to ignore this exception.
                         pass
 
                 return True
@@ -598,7 +600,7 @@ class ComfyUIManager:
                 print(f"🎛️  GPU: {name} | VRAM: {total} MB | CC: {capability}")
         except Exception as e:
             # GPU info logging is non-critical; suppress errors but log if verbose
-            print(f"⚠️ Failed to log GPU info: {e}")
+            print(f"⚠️ Could not log GPU info: {e}")
 
     def cleanup_temp_files(self, file_paths: List[Path]) -> int:
         """Clean up temporary ComfyUI output files"""

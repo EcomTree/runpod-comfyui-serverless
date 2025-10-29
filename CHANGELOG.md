@@ -1,6 +1,6 @@
 # Changelog - RunPod ComfyUI Serverless Optimizations
 
-## Version 3.0 - Optimized Edition (2025-10-15)
+## Version 3.0 - Optimized Edition (2024-10-15)
 
 Major performance and functionality overhaul based on successful Cloud project optimizations.
 
@@ -24,7 +24,7 @@ Major performance and functionality overhaul based on successful Cloud project o
 
 #### Memory Optimizations
 - **Updated**: CUDA memory allocator configuration
-- **Settings**: `max_split_size_mb:512,expandable_segments:True`
+- **Settings**: `max_split_size_mb:1024,expandable_segments:True`
 - **Benefit**: Better memory utilization and fewer OOM errors
 
 ### 📦 Dynamic Version Management

@@ -36,11 +36,11 @@ A high-performance, production-ready ComfyUI serverless handler for RunPod with 
 - **Workflow Flexibility**: Supports both predefined and dynamic workflows
 - **Extended Timeouts**: 20 min startup timeout, 60 min workflow execution timeout
 - **Error Handling**: Robust error handling and detailed logging with automatic stderr output
- - **Dynamic ComfyUI Versioning**: Build with latest or a specific tag via Docker ARG
- - **Performance Tuning**: TF32, cuDNN autotune, and optional `torch.compile`
- - **Custom Nodes Pack**: 5+ essential custom nodes pre-installed (configurable)
- - **Model Downloader**: Parallel downloads with checksum verification
- - **Multi-stage Docker Build**: Smaller images and faster rebuilds using BuildKit caches
+- **Dynamic ComfyUI Versioning**: Build with latest or a specific tag via Docker ARG
+- **Performance Tuning**: TF32, cuDNN autotune, and optional `torch.compile`
+- **Custom Nodes Pack**: 5+ essential custom nodes pre-installed (configurable)
+- **Model Downloader**: Parallel downloads with checksum verification
+- **Multi-stage Docker Build**: Smaller images and faster rebuilds using BuildKit caches
 
 ## 📋 Requirements
 
@@ -163,6 +163,12 @@ The handler supports the following environment variables:
 - `MATMUL_PRECISION`: highest | high (default) | medium
 - `COMFY_EXTRA_ARGS`: Extra CLI flags passed to ComfyUI at startup
 - **Deprecated (kept for backward compatibility)**: `DISABLE_SMART_MEMORY`, `FORCE_FP16`, `COLD_START_OPTIMIZATION`, `PRELOAD_MODELS`, `GPU_MEMORY_FRACTION`
+  - **Deprecation Notice:** These variables will be removed in version 4.0 (planned Q4 2024). Please migrate to the modern configuration detailed below:
+    - `DISABLE_SMART_MEMORY`: Use the default smart memory behaviour or refer to `docs/performance-tuning.md` for advanced memory flags.
+    - `FORCE_FP16`: Adjust precision using `MATMUL_PRECISION` or relevant PyTorch environment flags instead.
+    - `COLD_START_OPTIMIZATION`: Cold start improvements are now automatic; no manual flag is required.
+    - `PRELOAD_MODELS`: Model lifecycle is handled by the manifest-driven downloader; see `docs/model-management.md`.
+    - `GPU_MEMORY_FRACTION`: GPU memory is tuned automatically through allocator settings; manual fractions are deprecated.
 
 See `docs/performance-tuning.md` for details.
 
@@ -398,12 +404,12 @@ The handler is now organized into focused modules:
 - **src/s3_handler.py**: S3 storage operations with proper error handling and URL sanitization
 - **src/workflow_processor.py**: Workflow processing utilities including seed randomization
 - **rp_handler.py**: Main entry point that orchestrates all components
- - **scripts/**: Installers, model management, and performance hooks
-   - `scripts/get_latest_version.sh`: Resolve latest ComfyUI release
-   - `scripts/install_custom_nodes.sh`: Install core custom nodes from `configs/custom_nodes.json`
-   - `scripts/download_models.py`: Parallel model downloader with checksums
-   - `scripts/verify_links.py`: Link validation tool
- - **docs/**: Guides for performance tuning and custom nodes
+- **scripts/**: Installers, model management, and performance hooks
+  - `scripts/get_latest_version.sh`: Resolve latest ComfyUI release
+  - `scripts/install_custom_nodes.sh`: Install core custom nodes from `configs/custom_nodes.json`
+  - `scripts/download_models.py`: Parallel model downloader with checksums
+  - `scripts/verify_links.py`: Link validation tool
+- **docs/**: Guides for performance tuning and custom nodes
 
 ## 🚀 Deployment
 

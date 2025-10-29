@@ -59,7 +59,6 @@ class ColdStartOptimizer:
             
             # Set optimal Python environment variables
             optimizations = {
-                'PYTHONOPTIMIZE': '1',
                 'PYTHONDONTWRITEBYTECODE': '1',
                 'PYTHONUNBUFFERED': '1',
                 'PYTHONHASHSEED': '0',
@@ -132,7 +131,6 @@ class ColdStartOptimizer:
 # Fast ComfyUI startup script with cold start optimizations
 
 # Set optimized environment variables
-export PYTHONOPTIMIZE=1
 export PYTHONDONTWRITEBYTECODE=1
 export PYTHONUNBUFFERED=1
 export PYTHONHASHSEED=0
