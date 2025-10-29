@@ -45,20 +45,20 @@ def _apply_backend_flags() -> None:
             try:
                 torch.backends.cuda.matmul.allow_tf32 = True  # type: ignore[attr-defined]
                 torch.backends.cudnn.allow_tf32 = True  # type: ignore[attr-defined]
-            except Exception:
-                pass
+            except Exception as e:
+                warnings.warn(f"Could not enable TF32: {e}")
         # cuDNN autotune
         if _env_flag("ENABLE_CUDNN_BENCHMARK", True):
             try:
                 torch.backends.cudnn.benchmark = True  # type: ignore[attr-defined]
-            except Exception:
-                pass
+            except Exception as e:
+                warnings.warn(f"Could not enable cuDNN benchmark: {e}")
         # Matmul precision (PyTorch 2.0+)
         try:
             precision = _env_str("MATMUL_PRECISION", "high")
             torch.set_float32_matmul_precision(precision)  # type: ignore[attr-defined]
-        except Exception:
-            pass
+        except Exception as e:
+            warnings.warn(f"Could not set matmul precision: {e}")
     except Exception:
         # Torch may not be available in some contexts
         return
@@ -109,5 +109,6 @@ def apply_global_torch_optimizations() -> None:
 # Auto-apply when imported
 try:
     apply_global_torch_optimizations()
-except Exception:
-    pass
+except Exception as e:
+    # Ignore errors during global optimization setup to avoid breaking Python startup.
+    warnings.warn(f"Global torch optimizations failed to apply: {e}")

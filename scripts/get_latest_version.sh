@@ -35,23 +35,17 @@ get_latest_release() {
 }
 
 get_latest_tag_via_git() {
-  tmpdir=$(mktemp -d)
-  trap 'rm -rf "$tmpdir"' EXIT
-  git -c advice.detachedHead=false clone --depth=1 --filter=blob:none "https://github.com/${REPO}.git" "$tmpdir/repo" >/dev/null 2>&1 || return 1
-  pushd "$tmpdir/repo" >/dev/null 2>&1
-  # Fetch tags (lightweight and annotated) shallowly
-  git fetch --tags --depth=1 >/dev/null 2>&1 || true
+  # Use git ls-remote to list remote tags without cloning
+  tags=$(git ls-remote --tags "https://github.com/${REPO}.git" 2>/dev/null | awk '{print $2}' | grep -E 'refs/tags/' | sed 's#refs/tags/##' | grep -v '\^{}')
   # Prefer tags that look like versions and sort semver-ish
-  latest=$(git tag --list | grep -E '^v?[0-9]+(\.[0-9]+)*' | sort -V | tail -n1)
+  latest=$(printf '%s\n' "$tags" | grep -E '^v?[0-9]+(\.[0-9]+)*' | sort -V | tail -n1)
   if [[ -z "$latest" ]]; then
-    latest=$(git tag --list | sort -V | tail -n1)
+    latest=$(printf '%s\n' "$tags" | sort -V | tail -n1)
   fi
   if [[ -n "$latest" ]]; then
     printf '%s' "$latest"
-    popd >/dev/null 2>&1
     return 0
   fi
-  popd >/dev/null 2>&1
   return 1
 }
 

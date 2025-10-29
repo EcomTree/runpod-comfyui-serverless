@@ -47,6 +47,7 @@ class ComfyUIManager:
                     if desc:
                         return desc
                 except Exception:
+                    # Git command failed - fallback to other version detection methods
                     pass
 
             # Fallback: read a VERSION file if present

@@ -56,7 +56,8 @@ def download_file(url: str, dest: Path, headers: Optional[Dict[str, str]] = None
         r.raise_for_status()
         total = int(r.headers.get("content-length", 0))
         downloaded = 0
-        start = time.time()
+        initial_start = time.time()
+        last_progress = initial_start
         with tmp.open("wb") as f:
             for chunk in r.iter_content(chunk_size=1024 * 1024):
                 if not chunk:
@@ -64,11 +65,12 @@ def download_file(url: str, dest: Path, headers: Optional[Dict[str, str]] = None
                 f.write(chunk)
                 downloaded += len(chunk)
                 # Lightweight progress to stdout every ~5s
-                if total and (time.time() - start) > 5:
+                now = time.time()
+                if total and (now - last_progress) > 5:
                     pct = downloaded * 100.0 / total
                     sys.stdout.write(f"\r⬇️  {dest.name}: {pct:.1f}% ({downloaded/1e6:.1f}/{total/1e6:.1f} MB)")
                     sys.stdout.flush()
-                    start = time.time()
+                    last_progress = now
     tmp.rename(dest)
     sys.stdout.write(f"\r✅ {dest.name}: 100%\n")
 
