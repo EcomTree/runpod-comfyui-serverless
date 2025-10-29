@@ -59,7 +59,7 @@ ARG COMFYUI_REPO="https://github.com/comfyanonymous/ComfyUI.git"
 ARG COMFYUI_VERSION="latest"
 
 # Clone and checkout requested ComfyUI version
-RUN --mount=type=cache,target=/root/.cache/git bash -lc 'set -euo pipefail; \
+RUN bash -lc 'set -euo pipefail; \
     echo "Cloning ComfyUI from: ${COMFYUI_REPO}"; \
     git clone --filter=blob:none "${COMFYUI_REPO}" ComfyUI; \
     cd ComfyUI; \
