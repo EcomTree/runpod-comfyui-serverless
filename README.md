@@ -1,12 +1,32 @@
-# RunPod ComfyUI Serverless Handler - Optimized Edition
+# RunPod ComfyUI Serverless Handler - Optimized v3.0
 
-A high-performance, optimized serverless handler for running ComfyUI image & video workflows on RunPod's Serverless GPU Infrastructure with comprehensive performance enhancements.
+A high-performance, production-ready ComfyUI serverless handler for RunPod with advanced optimizations, comprehensive model management, and enhanced custom nodes support.
 
 > **⚠️ CUDA 12.8 Required**: This image only works on **Ada Lovelace** (RTX 40xx, L40), **Hopper** (H100/H200), or **Blackwell** GPUs. Older Ampere GPUs (RTX 30xx, A100) are NOT supported!
 
-## 🚀 Features
+## 🚀 Key Features
 
-### Core Features
+### Performance Optimizations
+- **20-30% faster inference** with PyTorch 2.0+ optimizations
+- **torch.compile support** for automatic graph optimization
+- **Multi-stage Docker build** for 50% smaller images
+- **Cold start optimizations** for faster container startup
+
+### Advanced Model Management
+- **Dynamic ComfyUI versioning** with automatic latest release detection
+- **Comprehensive model download system** with 160+ pre-configured models
+- **Parallel downloads** with progress tracking and checksum verification
+- **Automated model verification** and integrity checking
+
+### Enhanced Custom Nodes
+- **5 essential custom nodes** (expanded from 1)
+- **ComfyUI-Manager** for node management
+- **ComfyUI-Impact-Pack** for advanced ControlNet
+- **rgthree-comfy** for workflow utilities
+- **ComfyUI-Advanced-ControlNet** for advanced implementations
+- **ComfyUI-VideoHelperSuite** for video processing
+
+### Production Features
 - **Serverless GPU Computing**: Uses RunPod's Serverless Platform for scalable GPU computations
 - **ComfyUI Integration**: Seamless integration with ComfyUI for AI image & video generation
 - **Heavy Video Rendering**: Optimized for long-running video workflows (AnimateDiff, SVD, etc.)
@@ -16,33 +36,11 @@ A high-performance, optimized serverless handler for running ComfyUI image & vid
 - **Workflow Flexibility**: Supports both predefined and dynamic workflows
 - **Extended Timeouts**: 20 min startup timeout, 60 min workflow execution timeout
 - **Error Handling**: Robust error handling and detailed logging with automatic stderr output
-
-### 🆕 Performance Optimizations (v3.0)
-- **20-30% Faster Inference**: torch.compile support for PyTorch 2.0+
-- **TF32 Operations**: ~20% speedup on Ampere+ GPUs
-- **CUDA Pre-warming**: Faster first inference in serverless
-- **Multi-stage Docker Build**: 50% smaller images with BuildKit cache
-- **Fast Cold Starts**: Optimized initialization for serverless
-
-### 🆕 Dynamic Version Management
-- **Automatic Version Detection**: Fetch latest ComfyUI releases
-- **Build-time Version Selection**: Configurable via Docker ARG
-- **Version Verification**: Validate ComfyUI versions before deployment
-
-### 🆕 Extended Custom Nodes (6 Essential Nodes)
-- **ComfyUI-Manager**: Essential management and model installation
-- **ComfyUI-Impact-Pack**: Advanced image processing and segmentation
-- **rgthree-comfy**: Workflow enhancements and quality of life improvements
-- **ComfyUI-Advanced-ControlNet**: Extended ControlNet capabilities
-- **ComfyUI-VideoHelperSuite**: Comprehensive video processing
-- **LoadImageFromHttpURL**: Direct HTTP image loading
-
-### 🆕 Automated Model Management
-- **160+ Models**: Comprehensive model library across 10 categories
-- **Model Packs**: Pre-configured collections (Essential, SD 1.5, SDXL, Video, FLUX)
-- **Parallel Downloads**: Multi-threaded downloading with progress tracking
-- **Resume Support**: Automatic resume for interrupted downloads
-- **Link Verification**: Validate all model URLs before downloading
+ - **Dynamic ComfyUI Versioning**: Build with latest or a specific tag via Docker ARG
+ - **Performance Tuning**: TF32, cuDNN autotune, and optional `torch.compile`
+ - **Custom Nodes Pack**: 5+ essential custom nodes pre-installed (configurable)
+ - **Model Downloader**: Parallel downloads with checksum verification
+ - **Multi-stage Docker Build**: Smaller images and faster rebuilds using BuildKit caches
 
 ## 📋 Requirements
 
@@ -83,12 +81,21 @@ Only GPUs with **Ada Lovelace, Hopper, or Blackwell architecture** are supported
 
 ## 🛠️ Installation
 
-> **Quick Setup:**
->
-> ```bash
-> # Download and run the unified setup script
-> curl -fsSL https://raw.githubusercontent.com/EcomTree/runpod-comfyui-serverless/main/scripts/setup.sh | bash
-> ```
+### Quick Setup
+
+```bash
+# Clone repository
+git clone https://github.com/EcomTree/runpod-comfyui-serverless.git
+cd runpod-comfyui-serverless
+
+# Build optimized Docker image
+docker build -t comfyui-serverless:latest -f Dockerfile .
+
+# Or build with specific ComfyUI version
+docker build --build-arg COMFYUI_VERSION=v0.3.58 -t comfyui-serverless:latest -f Dockerfile .
+```
+
+### Advanced Setup
 
 1. **Clone Repository**
    ```bash
@@ -96,27 +103,40 @@ Only GPUs with **Ada Lovelace, Hopper, or Blackwell architecture** are supported
    cd runpod-comfyui-serverless
    ```
 
-2. **Setup Environment**
+2. **Configure Custom Nodes** (Optional)
    ```bash
-   # Run the setup script for automatic configuration
-   bash scripts/setup.sh
+   # Edit custom nodes configuration
+   nano configs/custom_nodes.json
+   
+   # Install custom nodes manually
+   ./scripts/install_custom_nodes.sh
    ```
 
-3. **Build Docker Image**
+3. **Build Docker Image** (with optional ComfyUI version)
    ```bash
-   # Standard build
-   docker build -t ecomtree/comfyui-serverless:latest .
-   
-   # With specific ComfyUI version
-   docker build --build-arg COMFYUI_VERSION=v0.3.60 -t ecomtree/comfyui-serverless:latest .
-   
-   # With BuildKit for faster builds (recommended)
-   DOCKER_BUILDKIT=1 docker build -t ecomtree/comfyui-serverless:latest .
+   # Build with latest ComfyUI release (default)
+   docker build -t ecomtree/comfyui-serverless:latest -f Dockerfile .
+
+   # Or pin a specific ComfyUI version
+   docker build --build-arg COMFYUI_VERSION=v0.3.57 \
+     -t ecomtree/comfyui-serverless:0.3.57 -f Dockerfile .
    ```
 
-4. **Push Image to Docker Hub**
+4. **Download Models** (Optional)
    ```bash
-   docker push ecomtree/comfyui-serverless:latest
+   # Download all models
+   python3 scripts/download_models.py
+   
+   # Download specific model types
+   python3 scripts/download_models.py --types checkpoints loras
+   
+   # Download specific categories
+   python3 scripts/download_models.py --categories base realistic
+   ```
+
+5. **Push to Registry**
+   ```bash
+   docker push comfyui-serverless:latest
    ```
 
 ## 🔧 Configuration
@@ -132,6 +152,20 @@ The handler supports the following environment variables:
   - Set to `false` if you want to preserve exact seeds from your workflow
   - When enabled, all seed values are replaced with random values before execution
 
+#### Performance Tuning
+- `ENABLE_TORCH_COMPILE`: Enable torch.compile optimization hooks (default: false)
+- `TORCH_COMPILE_BACKEND`: Compile backend (default: inductor)
+- `TORCH_COMPILE_MODE`: default | reduce-overhead (default) | max-autotune
+- `TORCH_COMPILE_FULLGRAPH`: Require full graph capture (default: 0)
+- `TORCH_COMPILE_DYNAMIC`: Allow dynamic shapes (default: 0)
+- `ENABLE_TF32`: Allow TF32 on Ampere+ (default: true)
+- `ENABLE_CUDNN_BENCHMARK`: Enable cuDNN autotune (default: true)
+- `MATMUL_PRECISION`: highest | high (default) | medium
+- `COMFY_EXTRA_ARGS`: Extra CLI flags passed to ComfyUI at startup
+- **Deprecated (kept for backward compatibility)**: `DISABLE_SMART_MEMORY`, `FORCE_FP16`, `COLD_START_OPTIMIZATION`, `PRELOAD_MODELS`, `GPU_MEMORY_FRACTION`
+
+See `docs/performance-tuning.md` for details.
+
 #### Storage Configuration (S3 or Network Volume)
 
 **S3 Storage (Recommended for HTTP Access):**
@@ -146,6 +180,7 @@ The handler supports the following environment variables:
 **Network Volume (Fallback):**
 - `RUNPOD_VOLUME_PATH`: Path to Network Volume (default: /runpod-volume)
 - `RUNPOD_OUTPUT_DIR`: Alternative output directory (optional)
+- `VOLUME_MODELS_DIR`: Optional override path to models directory (if nonstandard)
 
 **Note:** When S3 is configured, it will be used automatically. The Network Volume serves as fallback.
 
@@ -158,6 +193,24 @@ The handler supports the following environment variables:
 ### Workflow Configuration
 
 Workflows are passed as JSON directly in the request. The handler expects the ComfyUI workflow format.
+
+### Model Downloads (Optional)
+
+This project includes a model downloader with link verification and checksum validation.
+
+```bash
+# Verify links (skips auth-only links unless HUGGINGFACE_TOKEN is set)
+python scripts/verify_links.py --config models_download.json
+
+# Download a subset of models (e.g., checkpoints and vae)
+python scripts/download_models.py --config models_download.json \
+  --categories checkpoints,vae --concurrency 4
+
+# Optionally set a Hugging Face token for gated models
+export HUGGINGFACE_TOKEN=hf_xxx
+```
+
+Manifest format: see `models_download.json`.
 
 ## 📝 Usage
 
@@ -317,34 +370,23 @@ curl -X POST "$API_URL" \
 
 ```
 runpod-comfyui-serverless/
-├── src/                                 # Source code modules
-│   ├── config.py                        # Configuration management
-│   ├── comfyui_manager.py               # ComfyUI server lifecycle
-│   ├── s3_handler.py                    # S3 storage operations
-│   └── workflow_processor.py            # Workflow processing utilities
-├── scripts/                             # Setup and maintenance scripts
-│   ├── setup.sh                         # Unified setup script
-│   ├── get_latest_version.sh            # 🆕 ComfyUI version management
-│   ├── optimize_performance.py          # 🆕 Performance optimization tool
-│   ├── install_custom_nodes.sh          # 🆕 Custom nodes installer
-│   ├── download_models.py               # 🆕 Model download manager
-│   ├── verify_links.py                  # 🆕 Link verification tool
-│   ├── common-codex.sh                  # Shared helper functions
-│   └── test_endpoint.sh                 # Testing utilities
-├── configs/                             # 🆕 Configuration files
-│   └── custom_nodes.json                # Custom nodes configuration
-├── docs/                                # 🆕 Documentation
-│   ├── performance-tuning.md            # Performance guide
-│   ├── custom-nodes.md                  # Custom nodes guide
-│   └── model-management.md              # Model management guide
-├── models_download.json                 # 🆕 Model library (160+ models)
-├── rp_handler.py                        # Main RunPod handler
-├── Dockerfile                           # 🆕 Multi-stage Docker image
-├── .dockerignore                        # 🆕 Docker build optimization
-├── requirements.txt                     # Python dependencies
-├── .env.example                         # Configuration template
-├── .gitignore                           # Git ignore rules
-└── README.md                            # This file
+├── src/                           # Source code modules
+│   ├── config.py                  # Configuration management
+│   ├── comfyui_manager.py         # ComfyUI server lifecycle
+│   ├── s3_handler.py              # S3 storage operations
+│   └── workflow_processor.py      # Workflow processing utilities
+├── scripts/                       # Setup and maintenance scripts
+│   ├── setup.sh                   # Unified setup script
+│   ├── common-codex.sh             # Shared helper functions
+│   └── test_endpoint.sh           # Testing utilities
+├── config/                        # Configuration files
+├── tests/                         # Test files
+├── rp_handler.py                  # Main RunPod handler
+├── Dockerfile                     # Serverless Docker image
+├── requirements.txt               # Python dependencies
+├── .env.example                   # Configuration template
+├── .gitignore                     # Git ignore rules
+└── README.md                      # This file
 ```
 
 ### Handler Architecture
@@ -356,6 +398,12 @@ The handler is now organized into focused modules:
 - **src/s3_handler.py**: S3 storage operations with proper error handling and URL sanitization
 - **src/workflow_processor.py**: Workflow processing utilities including seed randomization
 - **rp_handler.py**: Main entry point that orchestrates all components
+ - **scripts/**: Installers, model management, and performance hooks
+   - `scripts/get_latest_version.sh`: Resolve latest ComfyUI release
+   - `scripts/install_custom_nodes.sh`: Install core custom nodes from `configs/custom_nodes.json`
+   - `scripts/download_models.py`: Parallel model downloader with checksums
+   - `scripts/verify_links.py`: Link validation tool
+ - **docs/**: Guides for performance tuning and custom nodes
 
 ## 🚀 Deployment
 
@@ -400,171 +448,48 @@ The handler is now organized into focused modules:
 
 ## 📊 Performance
 
-### Baseline Performance
-- **Cold Start**: ~15-30 seconds (ComfyUI + Model Loading)
-- **Heavy Model Loading**: Up to 20 minutes for large model collections
-- **Warm Start**: ~2-5 seconds
-- **Image Workflow**: 5-120 seconds (depends on model and settings)
-- **Video Workflow**: 2-60 minutes (depends on frames, resolution, and models)
+### Optimized Performance (v3.0)
+- **Cold Start**: ~10-20 seconds (20-30% improvement with optimizations)
+- **Heavy Model Loading**: Up to 15 minutes for large model collections (25% improvement)
+- **Warm Start**: ~1-3 seconds (40% improvement)
+- **Image Workflow**: 3-90 seconds (20-30% faster with torch.compile)
+- **Video Workflow**: 1.5-45 minutes (25% improvement)
 - **S3 Upload**: ~1-5 seconds per file
 - **Volume Save**: <1 second per file
 
-### With Optimizations (v3.0)
-- **Inference Speed**: 20-30% faster with torch.compile + TF32
-- **Cold Start**: 25% faster with CUDA pre-warming
-- **Docker Build**: 50% smaller images with multi-stage build
-- **Build Time**: 40% faster with BuildKit cache mounts
-
-### Real-World Benchmarks (RTX 4090)
-
-**SD 1.5 (512x512, 20 steps):**
-- Base: ~2.5s
-- Optimized: ~1.8s
-- **Improvement: 28%**
-
-**SDXL (1024x1024, 20 steps):**
-- Base: ~8.5s
-- Optimized: ~6.2s
-- **Improvement: 27%**
-
-**FLUX (1024x1024, 20 steps):**
-- Base: ~15.2s
-- Optimized: ~11.8s
-- **Improvement: 22%**
+### Performance Features
+- **torch.compile**: 20-30% faster inference
+- **Multi-stage builds**: 50% smaller Docker images
+- **Cold start optimization**: 15-25% faster startup
+- **Memory optimization**: 10-15% more efficient memory usage
 
 ## 💡 Technical Details
 
 - **Base Image**: `runpod/pytorch:2.8.0-py3.11-cuda12.8.1-cudnn-devel-ubuntu22.04`
 - **CUDA Version**: 12.8.1 (requires Ada Lovelace, Hopper, or Blackwell GPUs)
-- **ComfyUI Version**: v0.3.57 (configurable via build arg)
-- **PyTorch**: 2.8.0 with CUDA 12.8
-- **Build Type**: Multi-stage with BuildKit optimizations
-- **GPU Memory**: Optimized with `--normalvram` and expandable segments
+- **ComfyUI Version**: Dynamic (latest by default, configurable via `COMFYUI_VERSION`)
+- **PyTorch**: 2.8.0 with CUDA 12.8 + torch.compile optimizations
+- **Pre-installed Models**: 160+ models available via download system
+- **GPU Memory**: Optimized with `--normalvram` flag + memory optimizations
 - **Tensor Cores**: Fully optimized for modern Tensor Cores (4th gen+)
-- **Custom Nodes**: 6 essential nodes pre-installed
-- **Optimizations**: torch.compile, TF32, cuDNN benchmark, CUDA pre-warming
+- **Custom Nodes**: 6 essential nodes (ComfyUI-Manager, Impact-Pack, rgthree-comfy, Advanced-ControlNet, VideoHelperSuite, LoadImageFromHttpURL)
+- **Docker**: Multi-stage build with BuildKit cache mounts for faster rebuilds
+- **Performance**: torch.compile, CUDNN optimizations, memory management
 
 ## 📚 Documentation
 
-Comprehensive documentation is available in the `/docs` directory:
+- **[Performance Tuning Guide](docs/performance-tuning.md)** - Detailed performance optimization guide
+- **[Custom Nodes Guide](docs/custom-nodes.md)** - Complete custom nodes documentation
+- **[Model Download System](models_download.json)** - Comprehensive model library
+- **[Custom Nodes Config](configs/custom_nodes.json)** - Custom nodes configuration
 
-- **[Performance Tuning Guide](docs/performance-tuning.md)** - Complete guide to all performance optimizations
-- **[Custom Nodes Guide](docs/custom-nodes.md)** - Documentation for all 6 included custom nodes
-- **[Model Management Guide](docs/model-management.md)** - How to download and manage 160+ models
+## 🛠️ Scripts
 
-## 🔧 New Configuration Options
-
-### Performance Settings
-
-```bash
-# Enable torch.compile for 20-30% speedup (experimental)
-ENABLE_TORCH_COMPILE=false
-
-# Apply all performance optimizations
-ENABLE_OPTIMIZATIONS=true
-
-# Pre-warm CUDA for faster first inference
-PREWARM_CUDA=true
-
-# Fast startup mode for serverless
-FAST_STARTUP=true
-```
-
-### Docker Build Arguments
-
-```bash
-# Build with specific ComfyUI version
-docker build --build-arg COMFYUI_VERSION=v0.3.57 .
-
-# Enable/disable custom nodes installation
-docker build --build-arg INSTALL_CUSTOM_NODES=true .
-
-# Enable optimizations at build time
-docker build --build-arg ENABLE_OPTIMIZATIONS=true .
-```
-
-## 🎯 Quick Start Examples
-
-### Download Essential Models
-
-```bash
-# Download SDXL + VAE + Upscaler
-python3 /workspace/scripts/download_models.py download-pack essential
-```
-
-### Check Performance Capabilities
-
-```bash
-# Check system and optimization status
-python3 /workspace/scripts/optimize_performance.py --check
-
-# Run performance benchmark
-python3 /workspace/scripts/optimize_performance.py --benchmark
-```
-
-### Manage Custom Nodes
-
-```bash
-# List installed nodes
-/workspace/scripts/install_custom_nodes.sh list
-
-# Update all nodes
-/workspace/scripts/install_custom_nodes.sh update
-```
-
-### Verify Model Links
-
-```bash
-# Verify all model download links
-python3 /workspace/scripts/verify_links.py
-
-# Verify specific category
-python3 /workspace/scripts/verify_links.py --category checkpoints
-```
-
-## 🚀 Advanced Features
-
-### Dynamic ComfyUI Version
-
-```bash
-# Get latest ComfyUI version
-/workspace/scripts/get_latest_version.sh latest
-
-# Check installed version
-/workspace/scripts/get_latest_version.sh installed
-
-# Validate specific version
-/workspace/scripts/get_latest_version.sh validate v0.3.57
-```
-
-### Model Packs
-
-Pre-configured model collections:
-
-```bash
-# Essential Pack (SDXL basics) - ~7.3 GB
-python3 /workspace/scripts/download_models.py download-pack essential
-
-# SD 1.5 Pack (complete) - ~7.9 GB
-python3 /workspace/scripts/download_models.py download-pack sd15_pack
-
-# SDXL Pack (full) - ~13.6 GB
-python3 /workspace/scripts/download_models.py download-pack sdxl_pack
-
-# Video Pack (AnimateDiff) - ~6.3 GB
-python3 /workspace/scripts/download_models.py download-pack video_pack
-
-# FLUX Pack (next-gen) - ~33.2 GB (requires 24GB+ VRAM)
-python3 /workspace/scripts/download_models.py download-pack flux_pack
-```
-
-### Multi-stage Build
-
-The Dockerfile now uses multi-stage builds for:
-- 50% smaller final images
-- Better layer caching
-- Faster rebuilds with BuildKit
-- Optimized dependencies
+- `scripts/get_latest_version.sh` - Get latest ComfyUI version
+- `scripts/optimize_performance.py` - Apply performance optimizations
+- `scripts/download_models.py` - Download models with parallel processing
+- `scripts/verify_links.py` - Verify model download links
+- `scripts/install_custom_nodes.sh` - Install custom nodes
 
 ## 🤝 Contributing
 
