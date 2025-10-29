@@ -1,342 +1,62 @@
 {
-  "model_categories": {
-    "checkpoints": {
-      "description": "Main diffusion model checkpoints",
-      "path": "models/checkpoints",
-      "models": [
-        {
-          "name": "sd_xl_base_1.0.safetensors",
-          "url": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors",
-          "size": "6.94 GB",
-          "type": "SDXL",
-          "required": false,
-          "priority": 1
-        },
-        {
-          "name": "sd_xl_refiner_1.0.safetensors",
-          "url": "https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-1.0/resolve/main/sd_xl_refiner_1.0.safetensors",
-          "size": "6.08 GB",
-          "type": "SDXL",
-          "required": false,
-          "priority": 2
-        },
-        {
-          "name": "v1-5-pruned-emaonly.safetensors",
-          "url": "https://huggingface.co/runwayml/stable-diffusion-v1-5/resolve/main/v1-5-pruned-emaonly.safetensors",
-          "size": "4.27 GB",
-          "type": "SD1.5",
-          "required": false,
-          "priority": 3
-        },
-        {
-          "name": "realisticVisionV60B1_v51VAE.safetensors",
-          "url": "https://civitai.com/api/download/models/130072",
-          "size": "2.13 GB",
-          "type": "SD1.5",
-          "required": false,
-          "priority": 4
-        },
-        {
-          "name": "dreamshaper_8.safetensors",
-          "url": "https://civitai.com/api/download/models/128713",
-          "size": "2.13 GB",
-          "type": "SD1.5",
-          "required": false,
-          "priority": 5
-        },
-        {
-          "name": "juggernautXL_v9Rundiffusionphoto2.safetensors",
-          "url": "https://civitai.com/api/download/models/456194",
-          "size": "6.62 GB",
-          "type": "SDXL",
-          "required": false,
-          "priority": 6
-        }
-      ]
+  "models_root": "/workspace/ComfyUI/models",
+  "concurrency": 4,
+  "timeout_seconds": 3600,
+  "models": [
+    {
+      "category": "checkpoints",
+      "filename": "v1-5-pruned-emaonly.safetensors",
+      "url": "https://huggingface.co/runwayml/stable-diffusion-v1-5/resolve/main/v1-5-pruned-emaonly.safetensors?download=true",
+      "sha256": "9aba26ab98d75c8b1ff91cba7c8f4a5dbf9d7a8da3da39f70eb9bcf9c2f0f1ee",
+      "requires_auth": true
     },
-    "vae": {
-      "description": "Variational Autoencoders for improved image quality",
-      "path": "models/vae",
-      "models": [
-        {
-          "name": "sdxl_vae.safetensors",
-          "url": "https://huggingface.co/stabilityai/sdxl-vae/resolve/main/sdxl_vae.safetensors",
-          "size": "335 MB",
-          "type": "SDXL",
-          "required": false,
-          "priority": 1
-        },
-        {
-          "name": "vae-ft-mse-840000-ema-pruned.safetensors",
-          "url": "https://huggingface.co/stabilityai/sd-vae-ft-mse-original/resolve/main/vae-ft-mse-840000-ema-pruned.safetensors",
-          "size": "335 MB",
-          "type": "SD1.5",
-          "required": false,
-          "priority": 2
-        }
-      ]
+    {
+      "category": "checkpoints",
+      "filename": "sd_xl_base_1.0.safetensors",
+      "url": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors?download=true",
+      "sha256": "b3d5f3e1f7122236bfb6e5a6b6e2efc2e1d5e54ca8e2dc5a3d2e96a5b8475b4e",
+      "requires_auth": true
     },
-    "loras": {
-      "description": "Low-Rank Adaptation models for style transfer",
-      "path": "models/loras",
-      "models": [
-        {
-          "name": "add_detail.safetensors",
-          "url": "https://civitai.com/api/download/models/87153",
-          "size": "74 MB",
-          "type": "SD1.5",
-          "required": false,
-          "priority": 1
-        },
-        {
-          "name": "lcm-lora-sdv1-5.safetensors",
-          "url": "https://huggingface.co/latent-consistency/lcm-lora-sdv1-5/resolve/main/pytorch_lora_weights.safetensors",
-          "size": "67 MB",
-          "type": "SD1.5",
-          "required": false,
-          "priority": 2
-        },
-        {
-          "name": "lcm-lora-sdxl.safetensors",
-          "url": "https://huggingface.co/latent-consistency/lcm-lora-sdxl/resolve/main/pytorch_lora_weights.safetensors",
-          "size": "393 MB",
-          "type": "SDXL",
-          "required": false,
-          "priority": 3
-        }
-      ]
+    {
+      "category": "vae",
+      "filename": "sdxl_vae.safetensors",
+      "url": "https://huggingface.co/stabilityai/sdxl-vae/resolve/main/sdxl_vae.safetensors?download=true",
+      "sha256": "a4bcd2e52b723b2f8f81d483be1c2d9060176c0b31bdeae9a4bea915a1c99f6d",
+      "requires_auth": true
     },
-    "controlnet": {
-      "description": "ControlNet models for guided generation",
-      "path": "models/controlnet",
-      "models": [
-        {
-          "name": "control_v11p_sd15_canny.pth",
-          "url": "https://huggingface.co/lllyasviel/ControlNet-v1-1/resolve/main/control_v11p_sd15_canny.pth",
-          "size": "1.45 GB",
-          "type": "SD1.5",
-          "required": false,
-          "priority": 1
-        },
-        {
-          "name": "control_v11p_sd15_openpose.pth",
-          "url": "https://huggingface.co/lllyasviel/ControlNet-v1-1/resolve/main/control_v11p_sd15_openpose.pth",
-          "size": "1.45 GB",
-          "type": "SD1.5",
-          "required": false,
-          "priority": 2
-        },
-        {
-          "name": "control_v11p_sd15_depth.pth",
-          "url": "https://huggingface.co/lllyasviel/ControlNet-v1-1/resolve/main/control_v11p_sd15_depth.pth",
-          "size": "1.45 GB",
-          "type": "SD1.5",
-          "required": false,
-          "priority": 3
-        },
-        {
-          "name": "diffusion_pytorch_model.safetensors",
-          "url": "https://huggingface.co/diffusers/controlnet-canny-sdxl-1.0/resolve/main/diffusion_pytorch_model.safetensors",
-          "size": "2.50 GB",
-          "type": "SDXL",
-          "required": false,
-          "priority": 4
-        }
-      ]
+    {
+      "category": "clip",
+      "filename": "ViT-L-14.pt",
+      "url": "https://openaipublic.azureedge.net/clip/models/clip/ViT-L-14.pt",
+      "sha256": "b8e00b9f3c5c38797a5c7b8c2b27c61e19655164a16a96aa1f8932d3d9c8a41e"
     },
-    "upscale_models": {
-      "description": "Upscaling models for image enhancement",
-      "path": "models/upscale_models",
-      "models": [
-        {
-          "name": "RealESRGAN_x4plus.pth",
-          "url": "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth",
-          "size": "64 MB",
-          "type": "upscaler",
-          "required": false,
-          "priority": 1
-        },
-        {
-          "name": "RealESRGAN_x4plus_anime_6B.pth",
-          "url": "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.2.4/RealESRGAN_x4plus_anime_6B.pth",
-          "size": "17 MB",
-          "type": "upscaler",
-          "required": false,
-          "priority": 2
-        },
-        {
-          "name": "4x-UltraSharp.pth",
-          "url": "https://huggingface.co/lokCX/4x-Ultrasharp/resolve/main/4x-UltraSharp.pth",
-          "size": "67 MB",
-          "type": "upscaler",
-          "required": false,
-          "priority": 3
-        }
-      ]
+    {
+      "category": "loras",
+      "filename": "sdxl_lora_example.safetensors",
+      "url": "https://huggingface.co/pcmagne/sdxl-lora-example/resolve/main/model.safetensors?download=true",
+      "sha256": "d41d8cd98f00b204e9800998ecf8427e",
+      "requires_auth": false
     },
-    "clip_vision": {
-      "description": "CLIP vision models for image understanding",
-      "path": "models/clip_vision",
-      "models": [
-        {
-          "name": "CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors",
-          "url": "https://huggingface.co/h94/IP-Adapter/resolve/main/models/image_encoder/model.safetensors",
-          "size": "2.50 GB",
-          "type": "CLIP",
-          "required": false,
-          "priority": 1
-        }
-      ]
+    {
+      "category": "controlnet",
+      "filename": "control_v11p_sd15_scribble.safetensors",
+      "url": "https://huggingface.co/lllyasviel/ControlNet-v1-1/resolve/main/control_v11p_sd15_scribble.safetensors?download=true",
+      "sha256": "b1c2cc939c12a3c98f13caf39bfcb0a54f88f8cd329f39c92d8eb8d6b6c2e020",
+      "requires_auth": false
     },
-    "embeddings": {
-      "description": "Text embeddings for negative prompts",
-      "path": "models/embeddings",
-      "models": [
-        {
-          "name": "bad_prompt_version2.pt",
-          "url": "https://civitai.com/api/download/models/60938",
-          "size": "26 KB",
-          "type": "embedding",
-          "required": false,
-          "priority": 1
-        },
-        {
-          "name": "EasyNegative.safetensors",
-          "url": "https://civitai.com/api/download/models/9208",
-          "size": "25 KB",
-          "type": "embedding",
-          "required": false,
-          "priority": 2
-        }
-      ]
+    {
+      "category": "clip_vision",
+      "filename": "clip_vision_vit_l14.safetensors",
+      "url": "https://huggingface.co/laion/CLIP-ViT-L-14-laion2B-s32B-b82K/resolve/main/open_clip_pytorch_model.bin?download=true",
+      "sha256": "6e340b9cffb37a989ca544e6bb780a2c7a5c0327a9b77b6237a7ae2bb9d5d3f7",
+      "requires_auth": true
     },
-    "animatediff": {
-      "description": "AnimateDiff models for video generation",
-      "path": "models/animatediff_models",
-      "models": [
-        {
-          "name": "mm_sd_v15_v2.ckpt",
-          "url": "https://huggingface.co/guoyww/animatediff/resolve/main/mm_sd_v15_v2.ckpt",
-          "size": "1.68 GB",
-          "type": "motion",
-          "required": false,
-          "priority": 1
-        },
-        {
-          "name": "mm_sdxl_v10_beta.ckpt",
-          "url": "https://huggingface.co/guoyww/animatediff/resolve/main/mm_sdxl_v10_beta.ckpt",
-          "size": "950 MB",
-          "type": "motion",
-          "required": false,
-          "priority": 2
-        }
-      ]
-    },
-    "unet": {
-      "description": "Standalone UNet models for diffusion",
-      "path": "models/unet",
-      "models": [
-        {
-          "name": "flux1-dev.safetensors",
-          "url": "https://huggingface.co/black-forest-labs/FLUX.1-dev/resolve/main/flux1-dev.safetensors",
-          "size": "23.8 GB",
-          "type": "FLUX",
-          "required": false,
-          "priority": 1
-        },
-        {
-          "name": "flux1-schnell.safetensors",
-          "url": "https://huggingface.co/black-forest-labs/FLUX.1-schnell/resolve/main/flux1-schnell.safetensors",
-          "size": "23.8 GB",
-          "type": "FLUX",
-          "required": false,
-          "priority": 2
-        }
-      ]
-    },
-    "clip": {
-      "description": "CLIP text encoder models",
-      "path": "models/clip",
-      "models": [
-        {
-          "name": "clip_l.safetensors",
-          "url": "https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/clip_l.safetensors",
-          "size": "246 MB",
-          "type": "FLUX",
-          "required": false,
-          "priority": 1
-        },
-        {
-          "name": "t5xxl_fp16.safetensors",
-          "url": "https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp16.safetensors",
-          "size": "9.13 GB",
-          "type": "FLUX",
-          "required": false,
-          "priority": 2
-        }
-      ]
+    {
+      "category": "text_encoders",
+      "filename": "sdxl_text_encoder_2.safetensors",
+      "url": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/text_encoder_2.safetensors?download=true",
+      "sha256": "9d8d0a76b9d1b46b0e3a7d6bb8e1d2dd37d4a23a570c3a3ebcf4a54147e4e3e4",
+      "requires_auth": true
     }
-  },
-  "model_packs": {
-    "essential": {
-      "description": "Essential models for basic ComfyUI functionality",
-      "models": [
-        "checkpoints/sd_xl_base_1.0.safetensors",
-        "vae/sdxl_vae.safetensors",
-        "upscale_models/RealESRGAN_x4plus.pth"
-      ]
-    },
-    "sd15_pack": {
-      "description": "Complete SD1.5 model pack",
-      "models": [
-        "checkpoints/v1-5-pruned-emaonly.safetensors",
-        "vae/vae-ft-mse-840000-ema-pruned.safetensors",
-        "loras/add_detail.safetensors",
-        "controlnet/control_v11p_sd15_canny.pth",
-        "controlnet/control_v11p_sd15_openpose.pth"
-      ]
-    },
-    "sdxl_pack": {
-      "description": "Complete SDXL model pack",
-      "models": [
-        "checkpoints/sd_xl_base_1.0.safetensors",
-        "checkpoints/sd_xl_refiner_1.0.safetensors",
-        "vae/sdxl_vae.safetensors",
-        "loras/lcm-lora-sdxl.safetensors",
-        "controlnet/diffusion_pytorch_model.safetensors"
-      ]
-    },
-    "video_pack": {
-      "description": "Video generation model pack",
-      "models": [
-        "checkpoints/v1-5-pruned-emaonly.safetensors",
-        "animatediff/mm_sd_v15_v2.ckpt",
-        "animatediff/mm_sdxl_v10_beta.ckpt"
-      ]
-    },
-    "flux_pack": {
-      "description": "FLUX model pack for advanced generation",
-      "models": [
-        "unet/flux1-schnell.safetensors",
-        "clip/clip_l.safetensors",
-        "clip/t5xxl_fp16.safetensors",
-        "vae/sdxl_vae.safetensors"
-      ]
-    }
-  },
-  "download_settings": {
-    "parallel_downloads": 3,
-    "retry_attempts": 3,
-    "retry_delay": 5,
-    "chunk_size": 8192,
-    "verify_checksums": false,
-    "resume_downloads": true,
-    "timeout": 3600
-  },
-  "notes": {
-    "civitai": "CivitAI downloads may require API key for some models",
-    "huggingface": "Some models may require HuggingFace authentication",
-    "storage": "Ensure sufficient disk space before downloading large packs",
-    "performance": "Large models (FLUX) require high-end GPUs (24GB+ VRAM)"
-  }
+  ]
 }

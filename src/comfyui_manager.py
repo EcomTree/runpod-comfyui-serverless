@@ -2,6 +2,7 @@
 ComfyUI server management for RunPod Serverless
 """
 import os
+import shlex
 import shutil
 import subprocess
 import time
@@ -22,6 +23,43 @@ class ComfyUIManager:
         self._comfyui_process = None
         self._comfyui_path = config.get_workspace_config()['comfyui_path']
         self._comfyui_logs_path = config.get_workspace_config()['comfyui_logs_path']
+
+    def _detect_comfyui_version(self) -> str:
+        """Detect ComfyUI version from git repo or fallback markers"""
+        try:
+            repo_path = self._comfyui_path
+            if not repo_path.exists():
+                return "unknown (path not found)"
+
+            # Prefer git description if available
+            git_dir = repo_path / ".git"
+            if git_dir.exists():
+                try:
+                    result = subprocess.run(
+                        ["git", "describe", "--tags", "--always", "--dirty"],
+                        cwd=str(repo_path),
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.DEVNULL,
+                        text=True,
+                        check=False,
+                    )
+                    desc = result.stdout.strip()
+                    if desc:
+                        return desc
+                except Exception:
+                    pass
+
+            # Fallback: read a VERSION file if present
+            version_file = repo_path / "VERSION"
+            if version_file.exists():
+                try:
+                    return version_file.read_text().strip()
+                except Exception:
+                    pass
+
+            return "unknown"
+        except Exception:
+            return "unknown"
 
     def _wait_for_path(self, path: Path, timeout: int = 20, poll_interval: float = 1.0) -> bool:
         """Wait until a path exists or timeout is reached"""
@@ -55,11 +93,15 @@ class ComfyUIManager:
             print(f"🔍 Volume Base: {volume_base}")
 
             # Check the most common Volume Model structures
-            possible_volume_model_dirs = [
+            possible_volume_model_dirs = []
+            override_dir = config.get_volume_config().get('volume_models_dir')
+            if override_dir:
+                possible_volume_model_dirs.append(Path(override_dir))
+            possible_volume_model_dirs.extend([
                 volume_base / "ComfyUI" / "models",
                 volume_base / "models",
                 volume_base / "comfyui_models",
-            ]
+            ])
 
             volume_models_dir = None
             for path in possible_volume_model_dirs:
@@ -264,7 +306,7 @@ class ComfyUIManager:
             return False
 
     def _start_comfyui_if_needed(self) -> bool:
-        """Start ComfyUI if it's not already running"""
+        """Start ComfyUI if it's not already running with serverless optimizations"""
         # Check if ComfyUI is already running
         if self._is_comfyui_running():
             print("✅ ComfyUI is already running, skipping startup")
@@ -278,6 +320,11 @@ class ComfyUIManager:
             self._comfyui_process = None
 
         print("🚀 Starting ComfyUI in background with optimal settings...")
+        detected_version = self._detect_comfyui_version()
+        print(f"🧭 Detected ComfyUI version: {detected_version}")
+        self._log_gpu_info()
+        
+        # Build ComfyUI command with base arguments
         comfy_cmd = [
             "python", str(self._comfyui_path / "main.py"),
             "--listen", config.get('comfy_host', '127.0.0.1'),
@@ -288,19 +335,21 @@ class ComfyUIManager:
             "--cache-lru", "3"
         ]
         
-        # Add performance optimizations if enabled
+        # Add optional arguments based on config
         if config.get('enable_torch_compile', False):
             comfy_cmd.append("--enable-compile")
-            print("⚡ torch.compile enabled for 20-30% speed boost")
+        if config.get('disable_smart_memory', False):
+            comfy_cmd.append("--disable-smart-memory")
+        if config.get('force_fp16', False):
+            comfy_cmd.append("--force-fp16")
         
-        # Add fast startup flag for serverless
-        if config.get('fast_startup', True):
-            comfy_cmd.append("--fast")
-            print("🚀 Fast startup mode enabled for serverless")
-        # Serverless optimization: Pre-warm CUDA
-        if config.get('prewarm_cuda', True):
-            self._prewarm_cuda()
-        
+        # Add extra CLI args from COMFY_EXTRA_ARGS
+        extra_args = config.get('comfy_extra_args', '')
+        if isinstance(extra_args, str) and extra_args.strip():
+            try:
+                comfy_cmd.extend(shlex.split(extra_args))
+            except Exception:
+                print(f"⚠️ Could not parse COMFY_EXTRA_ARGS: '{extra_args}'")
         print(f"🎯 ComfyUI Start Command: {' '.join(comfy_cmd)}")
 
         # Create log files for debugging
@@ -311,11 +360,26 @@ class ComfyUIManager:
         try:
             with open(stdout_log, "a") as stdout_file, open(stderr_log, "a") as stderr_file:
 
+                # Prepare environment with performance flags
+                child_env = os.environ.copy()
+                child_env["ENABLE_TF32"] = "1" if config.get('enable_tf32', True) else "0"
+                child_env["ENABLE_CUDNN_BENCHMARK"] = "1" if config.get('enable_cudnn_benchmark', True) else "0"
+                child_env["MATMUL_PRECISION"] = str(config.get('matmul_precision', 'high'))
+
+                if config.get('enable_torch_compile', False):
+                    child_env["ENABLE_TORCH_COMPILE"] = "1"
+                    child_env["COMFY_ENABLE_COMPILE"] = "1"
+                    child_env["TORCH_COMPILE_MODE"] = str(config.get('torch_compile_mode', 'reduce-overhead'))
+                    child_env["TORCH_COMPILE_BACKEND"] = str(config.get('torch_compile_backend', 'inductor'))
+                    child_env["TORCH_COMPILE_FULLGRAPH"] = "1" if config.get('torch_compile_fullgraph', False) else "0"
+                    child_env["TORCH_COMPILE_DYNAMIC"] = "1" if config.get('torch_compile_dynamic', False) else "0"
+
                 self._comfyui_process = subprocess.Popen(
                     comfy_cmd,
                     stdout=stdout_file,
                     stderr=stderr_file,
-                    cwd=str(self._comfyui_path)
+                    cwd=str(self._comfyui_path),
+                    env=child_env,
                 )
 
                 print(f"📋 ComfyUI process started (PID: {self._comfyui_process.pid})")
@@ -339,6 +403,15 @@ class ComfyUIManager:
                         print(f"⚠️ Could not read stderr log: {e}")
 
                     return False
+
+                # Optional warmup to speed up first request
+                if config.get_workflow_config().get('enable_startup_warmup', True):
+                    try:
+                        base_url = config.get_comfyui_base_url()
+                        requests.get(f"{base_url}/object_info", timeout=5)
+                        print("🔥 Startup warmup: object_info primed")
+                    except requests.exceptions.RequestException:
+                        pass
 
                 return True
 
@@ -509,6 +582,21 @@ class ComfyUIManager:
 
         return image_paths
 
+    def _log_gpu_info(self) -> None:
+        """Log basic GPU information for diagnostics in serverless context"""
+        try:
+            import torch
+            available = torch.cuda.is_available()
+            print(f"🧩 CUDA available: {available}")
+            if available:
+                device = torch.device("cuda")
+                name = torch.cuda.get_device_name(device)
+                total = torch.cuda.get_device_properties(device).total_memory // (1024 * 1024)
+                capability = torch.cuda.get_device_capability(device)
+                print(f"🎛️  GPU: {name} | VRAM: {total} MB | CC: {capability}")
+        except Exception:
+            pass
+
     def cleanup_temp_files(self, file_paths: List[Path]) -> int:
         """Clean up temporary ComfyUI output files"""
         if not config.get('cleanup_temp_files', True):
@@ -529,53 +617,8 @@ class ComfyUIManager:
 
         return deleted_count
 
-    def _prewarm_cuda(self):
-        """Pre-warm CUDA for faster first inference (serverless optimization)"""
-        try:
-            import torch
-            if torch.cuda.is_available():
-                print("🔥 Pre-warming CUDA...")
-                # Quick CUDA operation to initialize context
-                _ = torch.zeros(1, device='cuda')
-                torch.cuda.synchronize()
-                print("✅ CUDA pre-warmed")
-        except Exception as e:
-            print(f"⚠️ CUDA pre-warm failed: {e}")
-    
-    def _apply_performance_optimizations(self):
-        """Apply runtime performance optimizations"""
-        try:
-            import torch
-            
-            print("⚡ Applying performance optimizations...")
-            
-            # Enable TF32 for Ampere+ GPUs
-            if hasattr(torch.backends.cuda, 'matmul'):
-                torch.backends.cuda.matmul.allow_tf32 = True
-                print("  ✓ TF32 matmul enabled")
-            
-            if hasattr(torch.backends.cudnn, 'allow_tf32'):
-                torch.backends.cudnn.allow_tf32 = True
-                print("  ✓ TF32 cuDNN enabled")
-            
-            # Enable cuDNN benchmarking
-            torch.backends.cudnn.benchmark = True
-            print("  ✓ cuDNN benchmark enabled")
-            
-            # Disable deterministic for performance
-            torch.backends.cudnn.deterministic = False
-            print("  ✓ Non-deterministic mode for speed")
-            
-            print("✅ Performance optimizations applied")
-        except Exception as e:
-            print(f"⚠️ Performance optimization failed: {e}")
-    
     def start_server_if_needed(self) -> bool:
         """Start ComfyUI server if needed and setup models"""
-        # Apply performance optimizations at startup
-        if config.get('enable_optimizations', True):
-            self._apply_performance_optimizations()
-        
         # Volume Models Setup
         comfy_models_dir = config.get_workspace_config()['comfyui_models_path']
         just_setup_models = False
@@ -598,7 +641,7 @@ class ComfyUIManager:
         # Model refresh only needed after initial setup
         if just_setup_models and config.get('comfy_refresh_models', True):
             print("⏳ Waiting for ComfyUI model scanning to initialize...")
-            time.sleep(3)  # Reduced from 5s for faster serverless startup
+            time.sleep(5)
             self._force_model_refresh()
 
         return True

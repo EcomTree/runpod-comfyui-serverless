@@ -1,72 +1,35 @@
 {
-  "custom_nodes": [
+  "install_root": "/workspace/ComfyUI/custom_nodes",
+  "nodes": [
     {
       "name": "ComfyUI-Manager",
       "repo": "https://github.com/ltdrdata/ComfyUI-Manager.git",
-      "description": "Essential management tool for ComfyUI with model/node installation",
-      "priority": 1,
-      "required": true,
-      "install_requirements": true,
-      "tags": ["management", "essential", "utility"]
+      "install_requirements": true
     },
     {
       "name": "ComfyUI-Impact-Pack",
       "repo": "https://github.com/ltdrdata/ComfyUI-Impact-Pack.git",
-      "description": "Advanced image processing and manipulation nodes",
-      "priority": 2,
-      "required": true,
-      "install_requirements": true,
-      "dependencies": ["ComfyUI-Manager"],
-      "tags": ["image-processing", "essential", "manipulation"]
+      "install_requirements": true
     },
     {
       "name": "rgthree-comfy",
       "repo": "https://github.com/rgthree/rgthree-comfy.git",
-      "description": "Quality of life improvements and workflow enhancements",
-      "priority": 3,
-      "required": true,
-      "install_requirements": true,
-      "tags": ["workflow", "utility", "ui"]
+      "install_requirements": true
     },
     {
       "name": "ComfyUI-Advanced-ControlNet",
       "repo": "https://github.com/Kosinkadink/ComfyUI-Advanced-ControlNet.git",
-      "description": "Advanced ControlNet support with extended features",
-      "priority": 4,
-      "required": true,
-      "install_requirements": true,
-      "tags": ["controlnet", "advanced", "control"]
+      "install_requirements": true
     },
     {
       "name": "ComfyUI-VideoHelperSuite",
       "repo": "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git",
-      "description": "Comprehensive video processing capabilities",
-      "priority": 5,
-      "required": true,
-      "install_requirements": true,
-      "tags": ["video", "animation", "frames"]
+      "install_requirements": true
     },
     {
       "name": "ComfyUI_LoadImageFromHttpURL",
       "repo": "https://github.com/jerrywap/ComfyUI_LoadImageFromHttpURL.git",
-      "description": "Load images directly from HTTP URLs",
-      "priority": 6,
-      "required": true,
-      "install_requirements": true,
-      "tags": ["utility", "images", "http"]
+      "install_requirements": true
     }
-  ],
-  "installation_notes": {
-    "order": "Nodes are installed in priority order (1 = highest priority)",
-    "dependencies": "Some nodes depend on others being installed first",
-    "requirements": "Python requirements.txt files are automatically processed",
-    "restart": "ComfyUI may need restart after node installation"
-  },
-  "configuration": {
-    "parallel_install": false,
-    "retry_on_failure": true,
-    "max_retries": 3,
-    "skip_on_error": false,
-    "verify_after_install": true
-  }
+  ]
 }

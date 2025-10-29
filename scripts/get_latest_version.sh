@@ -1,169 +1,71 @@
-#!/bin/bash
-#
-# ComfyUI Version Management Script
-# Fetches the latest ComfyUI version or validates a specific version
-#
+#!/usr/bin/env bash
+set -euo pipefail
 
-set -e
+# get_latest_version.sh
+# Prints the latest ComfyUI release tag to stdout.
+# Fallbacks to the latest annotated tag, or main if none.
+# Optional env:
+#   GITHUB_TOKEN - increases rate limits (optional)
+#   REPO         - override repository (default: comfyanonymous/ComfyUI)
 
-# Color output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+REPO="${REPO:-comfyanonymous/ComfyUI}"
+API_URL="https://api.github.com/repos/${REPO}/releases/latest"
 
-COMFYUI_REPO="comfyanonymous/ComfyUI"
-GITHUB_API="https://api.github.com/repos/${COMFYUI_REPO}"
+auth_header=()
+if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+  auth_header=(-H "Authorization: token ${GITHUB_TOKEN}")
+fi
 
-# Function to print colored messages
-log_info() {
-    echo -e "${GREEN}[INFO]${NC} $1"
-}
-
-log_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
-}
-
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-# Function to get latest release version
 get_latest_release() {
-    log_info "Fetching latest ComfyUI release from GitHub..."
-    
-    LATEST_VERSION=$(curl -s "${GITHUB_API}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-    
-    if [ -z "$LATEST_VERSION" ]; then
-        log_error "Failed to fetch latest version"
-        return 1
-    fi
-    
-    log_info "Latest ComfyUI version: ${LATEST_VERSION}"
-    echo "$LATEST_VERSION"
-}
-
-# Function to get all releases
-get_all_releases() {
-    log_info "Fetching all ComfyUI releases..."
-    
-    curl -s "${GITHUB_API}/releases" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | head -10
-}
-
-# Function to validate a specific version exists
-validate_version() {
-    local version=$1
-    log_info "Validating version: ${version}"
-    
-    # Check if the tag exists
-    STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${GITHUB_API}/git/refs/tags/${version}")
-    
-    if [ "$STATUS_CODE" = "200" ]; then
-        log_info "Version ${version} is valid ✓"
+  # Try to fetch the latest release tag_name
+  if command -v curl >/dev/null 2>&1; then
+    set +e
+    response=$(curl -sS "${auth_header[@]}" "${API_URL}")
+    status=$?
+    set -e
+    if [[ $status -eq 0 ]]; then
+      tag=$(printf '%s' "$response" | sed -n 's/.*"tag_name"\s*:\s*"\([^"]\+\)".*/\1/p' | head -n1)
+      if [[ -n "$tag" ]]; then
+        printf '%s' "$tag"
         return 0
-    else
-        log_error "Version ${version} does not exist"
-        return 1
+      fi
     fi
+  fi
+  return 1
 }
 
-# Function to get version from running ComfyUI
-get_installed_version() {
-    local comfyui_path="${1:-/workspace/ComfyUI}"
-    
-    if [ ! -d "$comfyui_path" ]; then
-        log_warn "ComfyUI directory not found at ${comfyui_path}"
-        return 1
-    fi
-    
-    cd "$comfyui_path"
-    
-    if [ ! -d ".git" ]; then
-        log_warn "Not a git repository"
-        return 1
-    fi
-    
-    # Get current git tag or commit
-    CURRENT_TAG=$(git describe --tags --exact-match 2>/dev/null || echo "")
-    
-    if [ -n "$CURRENT_TAG" ]; then
-        log_info "Currently installed version: ${CURRENT_TAG}"
-        echo "$CURRENT_TAG"
-    else
-        CURRENT_COMMIT=$(git rev-parse --short HEAD)
-        log_info "Currently on commit: ${CURRENT_COMMIT} (not a tagged release)"
-        echo "commit-${CURRENT_COMMIT}"
-    fi
+get_latest_tag_via_git() {
+  tmpdir=$(mktemp -d)
+  trap 'rm -rf "$tmpdir"' EXIT
+  git -c advice.detachedHead=false clone --depth=1 --filter=blob:none "https://github.com/${REPO}.git" "$tmpdir/repo" >/dev/null 2>&1 || return 1
+  pushd "$tmpdir/repo" >/dev/null 2>&1
+  # Fetch tags (lightweight and annotated) shallowly
+  git fetch --tags --depth=1 >/dev/null 2>&1 || true
+  # Prefer tags that look like versions and sort semver-ish
+  latest=$(git tag --list | grep -E '^v?[0-9]+(\.[0-9]+)*' | sort -V | tail -n1)
+  if [[ -z "$latest" ]]; then
+    latest=$(git tag --list | sort -V | tail -n1)
+  fi
+  if [[ -n "$latest" ]]; then
+    printf '%s' "$latest"
+    popd >/dev/null 2>&1
+    return 0
+  fi
+  popd >/dev/null 2>&1
+  return 1
 }
 
-# Function to compare versions
-compare_versions() {
-    local current_version=$1
-    local latest_version=$2
-    
-    if [ "$current_version" = "$latest_version" ]; then
-        log_info "You are running the latest version ✓"
-        return 0
-    else
-        log_warn "Newer version available: ${latest_version} (current: ${current_version})"
-        return 1
-    fi
-}
-
-# Main script logic
 main() {
-    local command=${1:-"latest"}
-    
-    case $command in
-        latest)
-            get_latest_release
-            ;;
-        list)
-            get_all_releases
-            ;;
-        validate)
-            if [ -z "$2" ]; then
-                log_error "Usage: $0 validate <version>"
-                exit 1
-            fi
-            validate_version "$2"
-            ;;
-        installed)
-            get_installed_version "$2"
-            ;;
-        check)
-            INSTALLED=$(get_installed_version "$2")
-            LATEST=$(get_latest_release)
-            
-            if [ -n "$INSTALLED" ] && [ -n "$LATEST" ]; then
-                compare_versions "$INSTALLED" "$LATEST"
-            fi
-            ;;
-        help|--help|-h)
-            echo "ComfyUI Version Management"
-            echo ""
-            echo "Usage: $0 <command> [options]"
-            echo ""
-            echo "Commands:"
-            echo "  latest              Get the latest release version"
-            echo "  list                List recent releases"
-            echo "  validate <version>  Check if a version exists"
-            echo "  installed [path]    Get currently installed version"
-            echo "  check [path]        Compare installed vs latest version"
-            echo "  help                Show this help message"
-            echo ""
-            echo "Examples:"
-            echo "  $0 latest"
-            echo "  $0 validate v0.3.57"
-            echo "  $0 installed /workspace/ComfyUI"
-            echo "  $0 check"
-            ;;
-        *)
-            log_error "Unknown command: $command"
-            echo "Use '$0 help' for usage information"
-            exit 1
-            ;;
-    esac
+  if latest=$(get_latest_release); then
+    printf '%s' "$latest"
+    exit 0
+  fi
+  if latest=$(get_latest_tag_via_git); then
+    printf '%s' "$latest"
+    exit 0
+  fi
+  # Last resort, use main
+  printf '%s' "main"
 }
 
 main "$@"
