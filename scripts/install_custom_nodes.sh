@@ -272,10 +272,10 @@ remove_node() {
 main() {
     local command=${1:-install}
     
-    echo "=" | tee -a "$LOG_FILE"
+    echo "========================================" | tee -a "$LOG_FILE"
     echo "ComfyUI Custom Nodes Installer" | tee -a "$LOG_FILE"
     echo "Date: $(date)" | tee -a "$LOG_FILE"
-    echo "=" | tee -a "$LOG_FILE"
+    echo "========================================" | tee -a "$LOG_FILE"
     
     case $command in
         install)
