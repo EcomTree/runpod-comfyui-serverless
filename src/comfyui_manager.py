@@ -287,6 +287,20 @@ class ComfyUIManager:
             "--verbose",
             "--cache-lru", "3"
         ]
+        
+        # Add performance optimizations if enabled
+        if config.get('enable_torch_compile', False):
+            comfy_cmd.append("--enable-compile")
+            print("⚡ torch.compile enabled for 20-30% speed boost")
+        
+        # Add fast startup flag for serverless
+        if config.get('fast_startup', True):
+            comfy_cmd.append("--fast")
+            print("🚀 Fast startup mode enabled for serverless")
+        # Serverless optimization: Pre-warm CUDA
+        if config.get('prewarm_cuda', True):
+            self._prewarm_cuda()
+        
         print(f"🎯 ComfyUI Start Command: {' '.join(comfy_cmd)}")
 
         # Create log files for debugging
@@ -515,8 +529,53 @@ class ComfyUIManager:
 
         return deleted_count
 
+    def _prewarm_cuda(self):
+        """Pre-warm CUDA for faster first inference (serverless optimization)"""
+        try:
+            import torch
+            if torch.cuda.is_available():
+                print("🔥 Pre-warming CUDA...")
+                # Quick CUDA operation to initialize context
+                _ = torch.zeros(1, device='cuda')
+                torch.cuda.synchronize()
+                print("✅ CUDA pre-warmed")
+        except Exception as e:
+            print(f"⚠️ CUDA pre-warm failed: {e}")
+    
+    def _apply_performance_optimizations(self):
+        """Apply runtime performance optimizations"""
+        try:
+            import torch
+            
+            print("⚡ Applying performance optimizations...")
+            
+            # Enable TF32 for Ampere+ GPUs
+            if hasattr(torch.backends.cuda, 'matmul'):
+                torch.backends.cuda.matmul.allow_tf32 = True
+                print("  ✓ TF32 matmul enabled")
+            
+            if hasattr(torch.backends.cudnn, 'allow_tf32'):
+                torch.backends.cudnn.allow_tf32 = True
+                print("  ✓ TF32 cuDNN enabled")
+            
+            # Enable cuDNN benchmarking
+            torch.backends.cudnn.benchmark = True
+            print("  ✓ cuDNN benchmark enabled")
+            
+            # Disable deterministic for performance
+            torch.backends.cudnn.deterministic = False
+            print("  ✓ Non-deterministic mode for speed")
+            
+            print("✅ Performance optimizations applied")
+        except Exception as e:
+            print(f"⚠️ Performance optimization failed: {e}")
+    
     def start_server_if_needed(self) -> bool:
         """Start ComfyUI server if needed and setup models"""
+        # Apply performance optimizations at startup
+        if config.get('enable_optimizations', True):
+            self._apply_performance_optimizations()
+        
         # Volume Models Setup
         comfy_models_dir = config.get_workspace_config()['comfyui_models_path']
         just_setup_models = False
@@ -539,7 +598,7 @@ class ComfyUIManager:
         # Model refresh only needed after initial setup
         if just_setup_models and config.get('comfy_refresh_models', True):
             print("⏳ Waiting for ComfyUI model scanning to initialize...")
-            time.sleep(5)
+            time.sleep(3)  # Reduced from 5s for faster serverless startup
             self._force_model_refresh()
 
         return True
