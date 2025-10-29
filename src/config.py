@@ -33,6 +33,17 @@ class Config:
             'comfy_refresh_models': self._parse_bool_env('COMFYUI_REFRESH_MODELS', 'true'),
             'cleanup_temp_files': self._parse_bool_env('CLEANUP_TEMP_FILES', 'true'),
             'debug_s3_urls': self._parse_bool_env('DEBUG_S3_URLS', 'false'),
+            # Performance flags
+            'enable_torch_compile': self._parse_bool_env('ENABLE_TORCH_COMPILE', 'false'),
+            'torch_compile_mode': os.getenv('TORCH_COMPILE_MODE', 'reduce-overhead'),
+            'torch_compile_backend': os.getenv('TORCH_COMPILE_BACKEND', 'inductor'),
+            'torch_compile_fullgraph': self._parse_bool_env('TORCH_COMPILE_FULLGRAPH', 'false'),
+            'torch_compile_dynamic': self._parse_bool_env('TORCH_COMPILE_DYNAMIC', 'false'),
+            'enable_tf32': self._parse_bool_env('ENABLE_TF32', 'true'),
+            'enable_cudnn_benchmark': self._parse_bool_env('ENABLE_CUDNN_BENCHMARK', 'true'),
+            'matmul_precision': os.getenv('MATMUL_PRECISION', 'high'),
+            # Additional CLI args for ComfyUI (space-separated)
+            'comfy_extra_args': os.getenv('COMFY_EXTRA_ARGS', ''),
         })
 
         # S3 Configuration
@@ -54,6 +65,7 @@ class Config:
             'runpod_volume_path': Path(os.getenv('RUNPOD_VOLUME_PATH', '/runpod-volume')),
             'runpod_output_dir': os.getenv('RUNPOD_OUTPUT_DIR'),
             'network_volume_timeout': self._parse_int_env('NETWORK_VOLUME_TIMEOUT', '15'),
+            'volume_models_dir': os.getenv('VOLUME_MODELS_DIR'),
         }
 
         # Workspace Configuration
@@ -70,6 +82,7 @@ class Config:
             'max_wait_time': 3600,  # 60 minutes for video rendering
             'poll_interval': 5,     # seconds
             'default_workflow_duration': 60,  # seconds
+            'enable_startup_warmup': self._parse_bool_env('ENABLE_STARTUP_WARMUP', 'true'),
         }
 
     def _parse_bool_env(self, key: str, default: str = 'false') -> bool:
