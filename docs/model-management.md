@@ -15,7 +15,7 @@ Comprehensive guide for downloading, managing, and organizing models for ComfyUI
 
 The model management system provides:
 
-- **8 models** across 10 categories
+- **8 models** across 8 categories
 - **Automated downloads** with progress tracking
 - **Parallel downloads** for speed
 - **Resume support** for interrupted downloads
