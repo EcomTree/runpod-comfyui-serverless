@@ -19,7 +19,7 @@ A high-performance, production-ready ComfyUI serverless handler for RunPod with 
 - **Automated model verification** and integrity checking
 
 ### Enhanced Custom Nodes
-- **5 essential custom nodes** (expanded from 1)
+- **6 essential custom nodes** (expanded from 1)
 - **ComfyUI-Manager** for node management
 - **ComfyUI-Impact-Pack** for advanced ControlNet
 - **rgthree-comfy** for workflow utilities
