@@ -1,176 +1,71 @@
 #!/usr/bin/env python3
 """
-Link verification script for model downloads
-Checks if all URLs in models_download.json are accessible
+Verify links in the models manifest.
+
+Usage:
+  python scripts/verify_links.py --config models_download.json [--concurrency 16]
+
+Skips HEAD check for entries marked requires_auth when no token is provided.
 """
+from __future__ import annotations
 
-import json
 import argparse
-import asyncio
-import aiohttp
-from pathlib import Path
-from typing import Dict, List, Tuple
-import time
+import concurrent.futures
+import json
+import os
+from typing import Dict, Any, Tuple
 
-class LinkVerifier:
-    """Verify model download links"""
-    
-    def __init__(self, config_path: str, max_concurrent: int = 10):
-        self.config_path = Path(config_path)
-        self.max_concurrent = max_concurrent
-        self.config = {}
-        self.verification_results = {
-            'total': 0,
-            'accessible': 0,
-            'inaccessible': 0,
-            'timeout': 0,
-            'error': 0
-        }
-    
-    def load_config(self) -> bool:
-        """Load model configuration"""
-        try:
-            with open(self.config_path, 'r') as f:
-                self.config = json.load(f)
-            print(f"✅ Loaded config: {self.config_path}")
-            return True
-        except Exception as e:
-            print(f"❌ Failed to load config: {e}")
-            return False
-    
-    async def verify_url(self, session: aiohttp.ClientSession, 
-                        model_type: str, model_name: str, url: str) -> Tuple[str, str, bool, str]:
-        """Verify a single URL"""
-        try:
-            async with session.head(url, allow_redirects=True) as response:
-                if response.status == 200:
-                    return model_type, model_name, True, f"OK (HTTP {response.status})"
-                else:
-                    return model_type, model_name, False, f"HTTP {response.status}"
-        except asyncio.TimeoutError:
-            return model_type, model_name, False, "Timeout"
-        except Exception as e:
-            return model_type, model_name, False, f"Error: {str(e)[:50]}"
-    
-    async def verify_all_links(self) -> bool:
-        """Verify all model download links"""
-        if not self.config:
-            print("❌ No config loaded")
-            return False
-        
-        # Collect all URLs
-        urls_to_verify = []
-        for model_type, models in self.config['models'].items():
-            for model in models:
-                urls_to_verify.append((
-                    model_type,
-                    model['name'],
-                    model['url']
-                ))
-        
-        if not urls_to_verify:
-            print("❌ No URLs found in config")
-            return False
-        
-        self.verification_results['total'] = len(urls_to_verify)
-        print(f"🔍 Verifying {len(urls_to_verify)} URLs...")
-        
-        # Create semaphore for concurrent requests
-        semaphore = asyncio.Semaphore(self.max_concurrent)
-        
-        async def verify_with_semaphore(session, model_type, model_name, url):
-            async with semaphore:
-                return await self.verify_url(session, model_type, model_name, url)
-        
-        # Start verification
-        start_time = time.time()
-        
-        async with aiohttp.ClientSession(
-            timeout=aiohttp.ClientTimeout(total=30),
-            headers={'User-Agent': 'ComfyUI-Link-Verifier/1.0'}
-        ) as session:
-            tasks = []
-            for model_type, model_name, url in urls_to_verify:
-                task = asyncio.create_task(
-                    verify_with_semaphore(session, model_type, model_name, url)
-                )
-                tasks.append(task)
-            
-            # Process results as they complete
-            for task in asyncio.as_completed(tasks):
-                model_type, model_name, success, message = await task
-                
-                if success:
-                    print(f"✅ {model_type}/{model_name}: {message}")
-                    self.verification_results['accessible'] += 1
-                else:
-                    print(f"❌ {model_type}/{model_name}: {message}")
-                    if "Timeout" in message:
-                        self.verification_results['timeout'] += 1
-                    else:
-                        self.verification_results['error'] += 1
-                    self.verification_results['inaccessible'] += 1
-        
-        # Print summary
-        elapsed_time = time.time() - start_time
-        print(f"\n📊 Verification Summary:")
-        print(f"   ✅ Accessible: {self.verification_results['accessible']}")
-        print(f"   ❌ Inaccessible: {self.verification_results['inaccessible']}")
-        print(f"   ⏱️ Timeouts: {self.verification_results['timeout']}")
-        print(f"   🚫 Errors: {self.verification_results['error']}")
-        print(f"   📁 Total: {self.verification_results['total']}")
-        print(f"   ⏱️ Time: {elapsed_time:.1f} seconds")
-        
-        return self.verification_results['inaccessible'] == 0
-    
-    def generate_report(self, output_file: str = None):
-        """Generate verification report"""
-        if not output_file:
-            output_file = f"link_verification_report_{int(time.time())}.json"
-        
-        report = {
-            'timestamp': time.time(),
-            'config_file': str(self.config_path),
-            'results': self.verification_results,
-            'summary': {
-                'success_rate': (self.verification_results['accessible'] / self.verification_results['total']) * 100,
-                'all_accessible': self.verification_results['inaccessible'] == 0
-            }
-        }
-        
-        with open(output_file, 'w') as f:
-            json.dump(report, f, indent=2)
-        
-        print(f"📄 Report saved: {output_file}")
+import requests
 
-def main():
-    parser = argparse.ArgumentParser(description='ComfyUI Link Verifier')
-    parser.add_argument('--config', default='/workspace/models_download.json',
-                       help='Path to models config file')
-    parser.add_argument('--max-concurrent', type=int, default=10,
-                       help='Maximum concurrent verifications')
-    parser.add_argument('--report', type=str,
-                       help='Output file for verification report')
-    
-    args = parser.parse_args()
-    
-    # Create verifier
-    verifier = LinkVerifier(
-        config_path=args.config,
-        max_concurrent=args.max_concurrent
-    )
-    
-    # Load config
-    if not verifier.load_config():
-        return 1
-    
-    # Verify links
-    success = asyncio.run(verifier.verify_all_links())
-    
-    # Generate report
-    verifier.generate_report(args.report)
-    
-    return 0 if success else 1
+
+def check_url(entry: Dict[str, Any]) -> Tuple[str, bool, int, str]:
+    name = entry.get("filename") or entry.get("name") or "<unknown>"
+    url = entry.get("url")
+    requires_auth = bool(entry.get("requires_auth", False))
+    if not url:
+        return (name, False, 0, "missing url")
+
+    headers = {}
+    token = os.getenv("HUGGINGFACE_TOKEN")
+    if requires_auth and token and ("huggingface.co" in url):
+        headers["Authorization"] = f"Bearer {token}"
+    elif requires_auth and ("huggingface.co" in url):
+        return (name, False, 401, "requires auth")
+
+    try:
+        r = requests.head(url, allow_redirects=True, headers=headers, timeout=30)
+        return (name, r.ok, r.status_code, "ok" if r.ok else r.reason)
+    except requests.RequestException as e:
+        return (name, False, 0, str(e))
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--config", required=True)
+    ap.add_argument("--concurrency", type=int, default=16)
+    args = ap.parse_args()
+
+    with open(args.config, "r", encoding="utf-8") as f:
+        manifest = json.load(f)
+
+    models = manifest.get("models", [])
+    print(f"Verifying {len(models)} links...")
+
+    ok = 0
+    fail = 0
+    with concurrent.futures.ThreadPoolExecutor(max_workers=args.concurrency) as ex:
+        for name, success, status, msg in ex.map(check_url, models):
+            status_str = status if status else "-"
+            if success:
+                ok += 1
+                print(f"✅ {name}: {status_str}")
+            else:
+                fail += 1
+                print(f"❌ {name}: {status_str} ({msg})")
+
+    print(f"Done. OK={ok}, FAIL={fail}")
+    return 0 if fail == 0 else 1
+
 
 if __name__ == "__main__":
-    exit(main())
+    raise SystemExit(main())

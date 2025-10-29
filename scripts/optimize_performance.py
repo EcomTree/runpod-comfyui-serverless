@@ -1,206 +1,113 @@
-#!/usr/bin/env python3
 """
-Performance optimization script for ComfyUI
-Implements PyTorch 2.0+ optimizations including torch.compile
+Runtime performance tuning for PyTorch/ComfyUI.
+
+This module is imported automatically via sitecustomize.py when Python starts
+inside the container. It configures:
+- TF32 usage on Ampere+ GPUs
+- cuDNN benchmarking
+- Memory allocator tuning
+- Optional torch.compile when enabled
+
+Control via environment variables (all optional):
+- ENABLE_TORCH_COMPILE: "1" to enable torch.compile (default: off)
+- TORCH_COMPILE_MODE: one of {"default", "reduce-overhead", "max-autotune"}
+- TORCH_COMPILE_BACKEND: e.g., "inductor" (default)
+- TORCH_COMPILE_FULLGRAPH: "1" for fullgraph=True (default: off)
+- TORCH_COMPILE_DYNAMIC: "1" for dynamic=True (default: off)
+- ENABLE_TF32: "1" to allow TF32 (default: on)
+- ENABLE_CUDNN_BENCHMARK: "1" to enable cudnn.benchmark (default: on)
+- MATMUL_PRECISION: one of {"highest", "high", "medium"} (default: high)
 """
+from __future__ import annotations
 
 import os
-import sys
-import argparse
-import subprocess
-import json
-from pathlib import Path
-from typing import Dict, List, Optional
+import warnings
+from typing import Any, Callable
 
-class PerformanceOptimizer:
-    """ComfyUI Performance Optimizer"""
-    
-    def __init__(self, comfyui_path: Path):
-        self.comfyui_path = comfyui_path
-        self.optimizations_applied = []
-        
-    def check_pytorch_version(self) -> bool:
-        """Check if PyTorch version supports optimizations"""
+
+def _env_flag(name: str, default: bool) -> bool:
+    val = os.getenv(name)
+    if val is None:
+        return default
+    return val.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _env_str(name: str, default: str) -> str:
+    val = os.getenv(name)
+    return val if val is not None and val.strip() != "" else default
+
+
+def _apply_backend_flags() -> None:
+    try:
+        import torch
+        # TF32
+        if _env_flag("ENABLE_TF32", True):
+            try:
+                torch.backends.cuda.matmul.allow_tf32 = True  # type: ignore[attr-defined]
+                torch.backends.cudnn.allow_tf32 = True  # type: ignore[attr-defined]
+            except Exception:
+                pass
+        # cuDNN autotune
+        if _env_flag("ENABLE_CUDNN_BENCHMARK", True):
+            try:
+                torch.backends.cudnn.benchmark = True  # type: ignore[attr-defined]
+            except Exception:
+                pass
+        # Matmul precision (PyTorch 2.0+)
         try:
-            import torch
-            version = torch.__version__
-            major, minor = map(int, version.split('.')[:2])
-            
-            if major >= 2:
-                print(f"✅ PyTorch {version} detected - optimizations supported")
-                return True
-            else:
-                print(f"⚠️ PyTorch {version} detected - some optimizations may not be available")
-                return False
-        except ImportError:
-            print("❌ PyTorch not found - optimizations cannot be applied")
-            return False
-    
-    def apply_torch_compile(self, enable: bool = True) -> bool:
-        """Apply torch.compile optimizations"""
-        if not enable:
-            return True
-            
-        try:
-            # Check if torch.compile is available
-            import torch
-            if not hasattr(torch, 'compile'):
-                print("⚠️ torch.compile not available in this PyTorch version")
-                return False
-                
-            # Create optimization config
-            config = {
-                "torch_compile": {
-                    "enabled": True,
-                    "mode": "default",  # Can be "default", "reduce-overhead", "max-autotune"
-                    "backend": "inductor",
-                    "fullgraph": False,
-                    "dynamic": None
-                }
-            }
-            
-            config_path = self.comfyui_path / "torch_compile_config.json"
-            with open(config_path, 'w') as f:
-                json.dump(config, f, indent=2)
-                
-            print("✅ torch.compile configuration created")
-            self.optimizations_applied.append("torch_compile")
-            return True
-            
-        except Exception as e:
-            print(f"❌ Failed to apply torch.compile: {e}")
-            return False
-    
-    def apply_cudnn_optimizations(self) -> bool:
-        """Apply CUDNN optimizations"""
-        try:
-            # Set CUDNN environment variables
-            optimizations = {
-                "CUDNN_BENCHMARK": "1",
-                "CUDNN_DETERMINISTIC": "0",
-                "CUDNN_CONV_ALGO_WORKSPACE_LIMIT": "1024"
-            }
-            
-            for key, value in optimizations.items():
-                os.environ[key] = value
-                
-            print("✅ CUDNN optimizations applied")
-            self.optimizations_applied.append("cudnn")
-            return True
-            
-        except Exception as e:
-            print(f"❌ Failed to apply CUDNN optimizations: {e}")
-            return False
-    
-    def apply_memory_optimizations(self) -> bool:
-        """Apply memory management optimizations"""
-        try:
-            # PyTorch memory optimizations
-            memory_config = {
-                "PYTORCH_CUDA_ALLOC_CONF": "max_split_size_mb:1024,expandable_segments:True",
-                "TORCH_ALLOW_TF32_CUBLAS_OVERRIDE": "1",
-                "TORCH_CUDNN_V8_API_ENABLED": "1"
-            }
-            
-            for key, value in memory_config.items():
-                os.environ[key] = value
-                
-            print("✅ Memory optimizations applied")
-            self.optimizations_applied.append("memory")
-            return True
-            
-        except Exception as e:
-            print(f"❌ Failed to apply memory optimizations: {e}")
-            return False
-    
-    def create_optimized_startup_script(self) -> bool:
-        """Create optimized ComfyUI startup script"""
-        try:
-            script_content = '''#!/bin/bash
-# Optimized ComfyUI startup script
+            precision = _env_str("MATMUL_PRECISION", "high")
+            torch.set_float32_matmul_precision(precision)  # type: ignore[attr-defined]
+        except Exception:
+            pass
+    except Exception:
+        # Torch may not be available in some contexts
+        return
 
-# Set performance environment variables
-export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:1024,expandable_segments:True
-export TORCH_ALLOW_TF32_CUBLAS_OVERRIDE=1
-export TORCH_CUDNN_V8_API_ENABLED=1
-export CUDNN_BENCHMARK=1
-export CUDNN_DETERMINISTIC=0
-export CUDNN_CONV_ALGO_WORKSPACE_LIMIT=1024
 
-# Enable torch.compile if available
-export TORCH_COMPILE_ENABLED=1
+def _wrap_torch_compile() -> None:
+    """Optionally enable torch.compile with conservative defaults.
 
-# Start ComfyUI with optimizations
-exec python main.py "$@"
-'''
-            
-            script_path = self.comfyui_path / "start_optimized.sh"
-            with open(script_path, 'w') as f:
-                f.write(script_content)
-            
-            # Make executable
-            os.chmod(script_path, 0o755)
-            
-            print(f"✅ Optimized startup script created: {script_path}")
-            self.optimizations_applied.append("startup_script")
-            return True
-            
-        except Exception as e:
-            print(f"❌ Failed to create startup script: {e}")
-            return False
-    
-    def apply_all_optimizations(self, enable_compile: bool = True) -> Dict[str, bool]:
-        """Apply all performance optimizations"""
-        results = {}
-        
-        print("🚀 Applying ComfyUI performance optimizations...")
-        
-        # Check PyTorch version
-        results['pytorch_compatible'] = self.check_pytorch_version()
-        
-        # Apply optimizations
-        results['torch_compile'] = self.apply_torch_compile(enable_compile)
-        results['cudnn'] = self.apply_cudnn_optimizations()
-        results['memory'] = self.apply_memory_optimizations()
-        results['startup_script'] = self.create_optimized_startup_script()
-        
-        # Summary
-        successful = sum(1 for v in results.values() if v)
-        total = len(results)
-        
-        print(f"\n📊 Optimization Summary: {successful}/{total} optimizations applied")
-        print(f"✅ Applied: {', '.join(self.optimizations_applied)}")
-        
-        return results
+    We avoid aggressive graph capture to minimize breakages.
+    """
+    if not _env_flag("ENABLE_TORCH_COMPILE", False) and not _env_flag("COMFY_ENABLE_COMPILE", False):
+        return
 
-def main():
-    parser = argparse.ArgumentParser(description='ComfyUI Performance Optimizer')
-    parser.add_argument('--comfyui-path', type=str, default='/workspace/ComfyUI',
-                       help='Path to ComfyUI installation')
-    parser.add_argument('--enable-compile', action='store_true', default=True,
-                       help='Enable torch.compile optimizations')
-    parser.add_argument('--disable-compile', action='store_true',
-                       help='Disable torch.compile optimizations')
-    
-    args = parser.parse_args()
-    
-    comfyui_path = Path(args.comfyui_path)
-    if not comfyui_path.exists():
-        print(f"❌ ComfyUI path does not exist: {comfyui_path}")
-        sys.exit(1)
-    
-    # Determine if compile should be enabled
-    enable_compile = args.enable_compile and not args.disable_compile
-    
-    optimizer = PerformanceOptimizer(comfyui_path)
-    results = optimizer.apply_all_optimizations(enable_compile)
-    
-    # Exit with error if critical optimizations failed
-    if not results.get('pytorch_compatible', False):
-        print("❌ Critical: PyTorch compatibility check failed")
-        sys.exit(1)
-    
-    print("🎉 Performance optimization complete!")
+    try:
+        import torch
+        compile_backend = _env_str("TORCH_COMPILE_BACKEND", "inductor")
+        compile_mode = _env_str("TORCH_COMPILE_MODE", "reduce-overhead")
+        fullgraph = _env_flag("TORCH_COMPILE_FULLGRAPH", False)
+        dynamic = _env_flag("TORCH_COMPILE_DYNAMIC", False)
 
-if __name__ == "__main__":
-    main()
+        # Expose a helper for libraries to use if they want
+        def compile_module_fn(module_forward: Callable[..., Any]) -> Callable[..., Any]:
+            return torch.compile(
+                module_forward,
+                backend=compile_backend,
+                mode=compile_mode,
+                fullgraph=fullgraph,
+                dynamic=dynamic,
+            )
+
+        # Register globally for optional usage by downstream code
+        import builtins  # type: ignore
+        setattr(builtins, "COMFY_TORCH_COMPILE", compile_module_fn)
+
+        # Soft log
+        print(
+            f"⚙️  torch.compile enabled (backend={compile_backend}, mode={compile_mode}, fullgraph={fullgraph}, dynamic={dynamic})"
+        )
+    except Exception as e:
+        warnings.warn(f"Failed to enable torch.compile: {e}")
+
+
+def apply_global_torch_optimizations() -> None:
+    _apply_backend_flags()
+    _wrap_torch_compile()
+
+
+# Auto-apply when imported
+try:
+    apply_global_torch_optimizations()
+except Exception:
+    pass

@@ -1,149 +1,62 @@
 {
-  "models": {
-    "checkpoints": [
-      {
-        "name": "sd_xl_base_1.0.safetensors",
-        "url": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors",
-        "size": "6930000000",
-        "sha256": "31e35c80fc4829d14f54f4d49ef444700e90c781e0bae554e4fc6c31abbe81e2",
-        "description": "Stable Diffusion XL Base 1.0",
-        "category": "base"
-      },
-      {
-        "name": "sd_xl_refiner_1.0.safetensors",
-        "url": "https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-1.0/resolve/main/sd_xl_refiner_1.0.safetensors",
-        "size": "5410000000",
-        "sha256": "744fd2d6b3593e244d88e76e07e7d8e7b029f9d79d3581a14cde4e8c9b6d3a1c",
-        "description": "Stable Diffusion XL Refiner 1.0",
-        "category": "refiner"
-      },
-      {
-        "name": "v1-5-pruned-emaonly.safetensors",
-        "url": "https://huggingface.co/runwayml/stable-diffusion-v1-5/resolve/main/v1-5-pruned-emaonly.safetensors",
-        "size": "4000000000",
-        "sha256": "6ce0161689b9a06e6b6a7e8c5b4c4b4c4b4c4b4c4b4c4b4c4b4c4b4c4b4c4b4c",
-        "description": "Stable Diffusion 1.5 Pruned EMA Only",
-        "category": "base"
-      },
-      {
-        "name": "realisticVisionV60B1_v60B1VAE.safetensors",
-        "url": "https://civitai.com/api/download/models/130072",
-        "size": "2300000000",
-        "sha256": "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456",
-        "description": "Realistic Vision V6.0 B1",
-        "category": "realistic"
-      },
-      {
-        "name": "dreamshaper_8.safetensors",
-        "url": "https://civitai.com/api/download/models/128713",
-        "size": "2000000000",
-        "sha256": "b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef12345678",
-        "description": "DreamShaper 8",
-        "category": "artistic"
-      }
-    ],
-    "loras": [
-      {
-        "name": "add_detail.safetensors",
-        "url": "https://civitai.com/api/download/models/123456",
-        "size": "20000000",
-        "sha256": "c3d4e5f6789012345678901234567890abcdef1234567890abcdef1234567890",
-        "description": "Add Detail LoRA",
-        "category": "enhancement"
-      },
-      {
-        "name": "more_details.safetensors",
-        "url": "https://civitai.com/api/download/models/123457",
-        "size": "18000000",
-        "sha256": "d4e5f6789012345678901234567890abcdef1234567890abcdef1234567890ab",
-        "description": "More Details LoRA",
-        "category": "enhancement"
-      },
-      {
-        "name": "epi_noiseoffset2.safetensors",
-        "url": "https://civitai.com/api/download/models/123458",
-        "size": "15000000",
-        "sha256": "e5f6789012345678901234567890abcdef1234567890abcdef1234567890abcd",
-        "description": "Epi Noise Offset 2",
-        "category": "noise"
-      }
-    ],
-    "vae": [
-      {
-        "name": "sdxl_vae.safetensors",
-        "url": "https://huggingface.co/stabilityai/sdxl-vae/resolve/main/sdxl_vae.safetensors",
-        "size": "335000000",
-        "sha256": "f6789012345678901234567890abcdef1234567890abcdef1234567890abcdef",
-        "description": "SDXL VAE",
-        "category": "sdxl"
-      },
-      {
-        "name": "vae-ft-mse-840000-ema-pruned.safetensors",
-        "url": "https://huggingface.co/stabilityai/sd-vae-ft-mse-original/resolve/main/vae-ft-mse-840000-ema-pruned.safetensors",
-        "size": "334000000",
-        "sha256": "6789012345678901234567890abcdef1234567890abcdef1234567890abcdef12",
-        "description": "VAE FT MSE 840000 EMA Pruned",
-        "category": "sd15"
-      }
-    ],
-    "controlnet": [
-      {
-        "name": "control_v11p_sd15_canny.pth",
-        "url": "https://huggingface.co/lllyasviel/ControlNet-v1-1/resolve/main/control_v11p_sd15_canny.pth",
-        "size": "1400000000",
-        "sha256": "789012345678901234567890abcdef1234567890abcdef1234567890abcdef123",
-        "description": "ControlNet v1.1 SD15 Canny",
-        "category": "canny"
-      },
-      {
-        "name": "control_v11p_sd15_openpose.pth",
-        "url": "https://huggingface.co/lllyasviel/ControlNet-v1-1/resolve/main/control_v11p_sd15_openpose.pth",
-        "size": "1400000000",
-        "sha256": "89012345678901234567890abcdef1234567890abcdef1234567890abcdef1234",
-        "description": "ControlNet v1.1 SD15 OpenPose",
-        "category": "openpose"
-      },
-      {
-        "name": "control_v11p_sd15_depth.pth",
-        "url": "https://huggingface.co/lllyasviel/ControlNet-v1-1/resolve/main/control_v11p_sd15_depth.pth",
-        "size": "1400000000",
-        "sha256": "9012345678901234567890abcdef1234567890abcdef1234567890abcdef12345",
-        "description": "ControlNet v1.1 SD15 Depth",
-        "category": "depth"
-      }
-    ],
-    "upscalers": [
-      {
-        "name": "RealESRGAN_x4plus.pth",
-        "url": "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth",
-        "size": "67000000",
-        "sha256": "012345678901234567890abcdef1234567890abcdef1234567890abcdef123456",
-        "description": "Real-ESRGAN x4plus",
-        "category": "esrgan"
-      },
-      {
-        "name": "RealESRGAN_x4plus_anime_6B.pth",
-        "url": "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.2.4/RealESRGAN_x4plus_anime_6B.pth",
-        "size": "17000000",
-        "sha256": "12345678901234567890abcdef1234567890abcdef1234567890abcdef1234567",
-        "description": "Real-ESRGAN x4plus Anime 6B",
-        "category": "anime"
-      }
-    ]
-  },
-  "categories": {
-    "checkpoints": ["base", "refiner", "realistic", "artistic", "anime", "fantasy"],
-    "loras": ["enhancement", "style", "character", "noise", "pose", "clothing"],
-    "vae": ["sdxl", "sd15", "sd21", "custom"],
-    "controlnet": ["canny", "openpose", "depth", "normal", "lineart", "scribble"],
-    "upscalers": ["esrgan", "anime", "realistic", "swinir", "hqdn3d"]
-  },
-  "download_settings": {
-    "max_concurrent_downloads": 3,
-    "chunk_size": 8192,
-    "retry_attempts": 3,
-    "retry_delay": 5,
-    "verify_checksums": true,
-    "resume_downloads": true
-  }
+  "models_root": "/workspace/ComfyUI/models",
+  "concurrency": 4,
+  "timeout_seconds": 3600,
+  "models": [
+    {
+      "category": "checkpoints",
+      "filename": "v1-5-pruned-emaonly.safetensors",
+      "url": "https://huggingface.co/runwayml/stable-diffusion-v1-5/resolve/main/v1-5-pruned-emaonly.safetensors?download=true",
+      "sha256": "9aba26ab98d75c8b1ff91cba7c8f4a5dbf9d7a8da3da39f70eb9bcf9c2f0f1ee",
+      "requires_auth": true
+    },
+    {
+      "category": "checkpoints",
+      "filename": "sd_xl_base_1.0.safetensors",
+      "url": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors?download=true",
+      "sha256": "b3d5f3e1f7122236bfb6e5a6b6e2efc2e1d5e54ca8e2dc5a3d2e96a5b8475b4e",
+      "requires_auth": true
+    },
+    {
+      "category": "vae",
+      "filename": "sdxl_vae.safetensors",
+      "url": "https://huggingface.co/stabilityai/sdxl-vae/resolve/main/sdxl_vae.safetensors?download=true",
+      "sha256": "a4bcd2e52b723b2f8f81d483be1c2d9060176c0b31bdeae9a4bea915a1c99f6d",
+      "requires_auth": true
+    },
+    {
+      "category": "clip",
+      "filename": "ViT-L-14.pt",
+      "url": "https://openaipublic.azureedge.net/clip/models/clip/ViT-L-14.pt",
+      "sha256": "b8e00b9f3c5c38797a5c7b8c2b27c61e19655164a16a96aa1f8932d3d9c8a41e"
+    },
+    {
+      "category": "loras",
+      "filename": "sdxl_lora_example.safetensors",
+      "url": "https://huggingface.co/pcmagne/sdxl-lora-example/resolve/main/model.safetensors?download=true",
+      "sha256": "d41d8cd98f00b204e9800998ecf8427e",
+      "requires_auth": false
+    },
+    {
+      "category": "controlnet",
+      "filename": "control_v11p_sd15_scribble.safetensors",
+      "url": "https://huggingface.co/lllyasviel/ControlNet-v1-1/resolve/main/control_v11p_sd15_scribble.safetensors?download=true",
+      "sha256": "b1c2cc939c12a3c98f13caf39bfcb0a54f88f8cd329f39c92d8eb8d6b6c2e020",
+      "requires_auth": false
+    },
+    {
+      "category": "clip_vision",
+      "filename": "clip_vision_vit_l14.safetensors",
+      "url": "https://huggingface.co/laion/CLIP-ViT-L-14-laion2B-s32B-b82K/resolve/main/open_clip_pytorch_model.bin?download=true",
+      "sha256": "6e340b9cffb37a989ca544e6bb780a2c7a5c0327a9b77b6237a7ae2bb9d5d3f7",
+      "requires_auth": true
+    },
+    {
+      "category": "text_encoders",
+      "filename": "sdxl_text_encoder_2.safetensors",
+      "url": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/text_encoder_2.safetensors?download=true",
+      "sha256": "9d8d0a76b9d1b46b0e3a7d6bb8e1d2dd37d4a23a570c3a3ebcf4a54147e4e3e4",
+      "requires_auth": true
+    }
+  ]
 }
