@@ -1,0 +1,75 @@
+{
+  "custom_nodes": [
+    {
+      "name": "ComfyUI-Manager",
+      "description": "Essential node manager for ComfyUI",
+      "repository": "https://github.com/ltdrdata/ComfyUI-Manager.git",
+      "branch": "main",
+      "requirements": [],
+      "priority": 1,
+      "essential": true
+    },
+    {
+      "name": "ComfyUI-Impact-Pack",
+      "description": "Advanced ControlNet and image processing nodes",
+      "repository": "https://github.com/ltdrdata/ComfyUI-Impact-Pack.git",
+      "branch": "main",
+      "requirements": [
+        "ultralytics",
+        "segment-anything",
+        "opencv-python",
+        "scikit-image",
+        "insightface",
+        "onnxruntime"
+      ],
+      "priority": 2,
+      "essential": true
+    },
+    {
+      "name": "rgthree-comfy",
+      "description": "Enhanced workflow utilities and nodes",
+      "repository": "https://github.com/rgthree/rgthree-comfy.git",
+      "branch": "main",
+      "requirements": [],
+      "priority": 3,
+      "essential": true
+    },
+    {
+      "name": "ComfyUI-Advanced-ControlNet",
+      "description": "Advanced ControlNet implementations",
+      "repository": "https://github.com/Kosinkadink/ComfyUI-Advanced-ControlNet.git",
+      "branch": "main",
+      "requirements": [
+        "controlnet-aux",
+        "mediapipe",
+        "transformers"
+      ],
+      "priority": 4,
+      "essential": true
+    },
+    {
+      "name": "ComfyUI-VideoHelperSuite",
+      "description": "Video processing and generation nodes",
+      "repository": "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git",
+      "branch": "main",
+      "requirements": [
+        "opencv-python",
+        "imageio",
+        "imageio-ffmpeg",
+        "numpy"
+      ],
+      "priority": 5,
+      "essential": true
+    }
+  ],
+  "installation_order": [
+    "ComfyUI-Manager",
+    "ComfyUI-Impact-Pack", 
+    "rgthree-comfy",
+    "ComfyUI-Advanced-ControlNet",
+    "ComfyUI-VideoHelperSuite"
+  ],
+  "post_install_commands": [
+    "python -c \"import sys; sys.path.append('/workspace/ComfyUI/custom_nodes/ComfyUI-Manager'); from manager import update_all_extension\" 2>/dev/null || true"
+  ]
+}

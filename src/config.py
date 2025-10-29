@@ -33,6 +33,13 @@ class Config:
             'comfy_refresh_models': self._parse_bool_env('COMFYUI_REFRESH_MODELS', 'true'),
             'cleanup_temp_files': self._parse_bool_env('CLEANUP_TEMP_FILES', 'true'),
             'debug_s3_urls': self._parse_bool_env('DEBUG_S3_URLS', 'false'),
+            # Serverless optimizations
+            'enable_torch_compile': self._parse_bool_env('ENABLE_TORCH_COMPILE', 'true'),
+            'disable_smart_memory': self._parse_bool_env('DISABLE_SMART_MEMORY', 'false'),
+            'force_fp16': self._parse_bool_env('FORCE_FP16', 'false'),
+            'cold_start_optimization': self._parse_bool_env('COLD_START_OPTIMIZATION', 'true'),
+            'preload_models': self._parse_bool_env('PRELOAD_MODELS', 'false'),
+            'gpu_memory_fraction': self._parse_float_env('GPU_MEMORY_FRACTION', '0.9'),
         })
 
         # S3 Configuration
@@ -88,6 +95,18 @@ class Config:
                 return int(default)
             except (ValueError, TypeError):
                 raise ValueError(f"[config] ERROR: Invalid default integer value for {key}: '{default}' (env value: '{value}')")
+    
+    def _parse_float_env(self, key: str, default: str) -> float:
+        """Safely parse environment variable as float"""
+        value = os.getenv(key, default)
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            self.logger.warning(f"Invalid float value for {key}: '{value}', using default: {default}")
+            try:
+                return float(default)
+            except (ValueError, TypeError):
+                raise ValueError(f"[config] ERROR: Invalid default float value for {key}: '{default}' (env value: '{value}')")
     
     def get(self, key: str, default: Any = None) -> Any:
         """

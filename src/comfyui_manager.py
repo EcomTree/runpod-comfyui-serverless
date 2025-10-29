@@ -264,7 +264,7 @@ class ComfyUIManager:
             return False
 
     def _start_comfyui_if_needed(self) -> bool:
-        """Start ComfyUI if it's not already running"""
+        """Start ComfyUI if it's not already running with serverless optimizations"""
         # Check if ComfyUI is already running
         if self._is_comfyui_running():
             print("✅ ComfyUI is already running, skipping startup")
@@ -277,16 +277,30 @@ class ComfyUIManager:
             print("🔄 Clearing stale ComfyUI process reference")
             self._comfyui_process = None
 
-        print("🚀 Starting ComfyUI in background with optimal settings...")
-        comfy_cmd = [
-            "python", str(self._comfyui_path / "main.py"),
-            "--listen", config.get('comfy_host', '127.0.0.1'),
-            "--port", str(config.get('comfy_port', 8188)),
-            "--normalvram",
-            "--preview-method", "auto",
-            "--verbose",
-            "--cache-lru", "3"
-        ]
+        print("🚀 Starting ComfyUI in background with serverless optimizations...")
+        
+        # Check for optimized startup script
+        optimized_script = self._comfyui_path / "start_optimized.sh"
+        if optimized_script.exists():
+            print("🎯 Using optimized startup script")
+            comfy_cmd = [str(optimized_script)]
+        else:
+            # Fallback to standard startup with serverless optimizations
+            comfy_cmd = [
+                "python", str(self._comfyui_path / "main.py"),
+                "--listen", config.get('comfy_host', '127.0.0.1'),
+                "--port", str(config.get('comfy_port', 8188)),
+                "--normalvram",
+                "--preview-method", "auto",
+                "--verbose",
+                "--cache-lru", "3",
+                "--enable-compile" if config.get('enable_torch_compile', True) else "",
+                "--disable-smart-memory" if config.get('disable_smart_memory', False) else "",
+                "--force-fp16" if config.get('force_fp16', False) else ""
+            ]
+            # Remove empty strings from command
+            comfy_cmd = [arg for arg in comfy_cmd if arg]
+        
         print(f"🎯 ComfyUI Start Command: {' '.join(comfy_cmd)}")
 
         # Create log files for debugging
