@@ -14,7 +14,7 @@ A high-performance, production-ready ComfyUI serverless handler for RunPod with 
 
 ### Advanced Model Management
 - **Dynamic ComfyUI versioning** with automatic latest release detection
-- **Comprehensive model download system** with 160+ pre-configured models
+- **Comprehensive model download system** with 8 pre-configured models across 8 categories
 - **Parallel downloads** with progress tracking and checksum verification
 - **Automated model verification** and integrity checking
 
