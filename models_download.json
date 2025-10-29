@@ -46,8 +46,8 @@
     {
       "category": "clip_vision",
       "filename": "clip_vision_vit_l14.safetensors",
-      "url": "https://huggingface.co/laion/CLIP-ViT-L-14-laion2B-s32B-b82K/resolve/main/open_clip_pytorch_model.bin?download=true",
-      "sha256": "6e340b9cffb37a989ca544e6bb780a2c7a5c0327a9b77b6237a7ae2bb9d5d3f7",
+      "url": "https://huggingface.co/laion/CLIP-ViT-L-14-laion2B-s32B-b82K/resolve/main/open_clip_pytorch_model.safetensors?download=true",
+      "sha256": "e2c2e3e5b2e7b1c2d3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
       "requires_auth": true
     },
     {
