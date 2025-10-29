@@ -3,20 +3,20 @@ Runtime performance tuning for PyTorch/ComfyUI.
 
 This module is imported automatically via sitecustomize.py when Python starts
 inside the container. It configures:
-- TF32 usage on Ampere+ GPUs
-- cuDNN benchmarking
-- Memory allocator tuning
-- Optional torch.compile when enabled
+* TF32 usage on Ampere+ GPUs
+* cuDNN benchmarking
+* Memory allocator tuning
+* Optional torch.compile when enabled
 
 Control via environment variables (all optional):
-- ENABLE_TORCH_COMPILE: "1" to enable torch.compile (default: off)
-- TORCH_COMPILE_MODE: one of {"default", "reduce-overhead", "max-autotune"}
-- TORCH_COMPILE_BACKEND: e.g., "inductor" (default)
-- TORCH_COMPILE_FULLGRAPH: "1" for fullgraph=True (default: off)
-- TORCH_COMPILE_DYNAMIC: "1" for dynamic=True (default: off)
-- ENABLE_TF32: "1" to allow TF32 (default: on)
-- ENABLE_CUDNN_BENCHMARK: "1" to enable cudnn.benchmark (default: on)
-- MATMUL_PRECISION: one of {"highest", "high", "medium"} (default: high)
+* ENABLE_TORCH_COMPILE: "1" to enable torch.compile (default: off)
+* TORCH_COMPILE_MODE: one of {"default", "reduce-overhead", "max-autotune"}
+* TORCH_COMPILE_BACKEND: e.g., "inductor" (default)
+* TORCH_COMPILE_FULLGRAPH: "1" for fullgraph=True (default: off)
+* TORCH_COMPILE_DYNAMIC: "1" for dynamic=True (default: off)
+* ENABLE_TF32: "1" to allow TF32 (default: on)
+* ENABLE_CUDNN_BENCHMARK: "1" to enable cudnn.benchmark (default: on)
+* MATMUL_PRECISION: one of {"highest", "high", "medium"} (default: high)
 """
 from __future__ import annotations
 
