@@ -1,6 +1,6 @@
 # Changelog - RunPod ComfyUI Serverless Optimizations
 
-## Version 3.0 - Optimized Edition (2025-10-29)
+## Version 3.0 - Optimized Edition (2025-10-15)
 
 Major performance and functionality overhaul based on successful Cloud project optimizations.
 
