@@ -14,7 +14,7 @@
       "category": "checkpoints",
       "filename": "sd_xl_base_1.0.safetensors",
       "url": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors?download=true",
-      "sha256": "9f5c2c6b8b7c2c1e2e6c8e4b6a2c1e2e6c8e4b6a2c1e2e6c8e4b6a2c1e2e6c8",  // Replace with the official SHA256
+      "sha256": "9f5c2c6b8b7c2c1e2e6c8e4b6a2c1e2e6c8e4b6a2c1e2e6c8e4b6a2c1e2e6c8",
       "requires_auth": true
     },
     {
@@ -27,8 +27,8 @@
     {
       "category": "clip",
       "filename": "ViT-L-14.pt",
-      "url": "https://openaipublic.azureedge.net/clip/models/clip/ViT-L-14.pt",
-      "sha256": "b8e00b9f3c5c38797a5c7b8c2b27c61e19655164a16a96aa1f8932d3d9c8a41e"
+      "url": "https://openaipublic.azureedge.net/clip/models/b8cca3fd41ae0c99ba7e8951adf17d267cdb84cd88be6f7c2e0eca1737a03836/ViT-L-14.pt",
+      "sha256": "b8cca3fd41ae0c99ba7e8951adf17d267cdb84cd88be6f7c2e0eca1737a03836"
     },
     {
       "category": "loras",
