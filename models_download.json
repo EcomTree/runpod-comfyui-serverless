@@ -7,7 +7,7 @@
       "category": "checkpoints",
       "filename": "v1-5-pruned-emaonly.safetensors",
       "url": "https://huggingface.co/runwayml/stable-diffusion-v1-5/resolve/main/v1-5-pruned-emaonly.safetensors?download=true",
-      "sha256": "9aba26ab98d75c8b1ff91cba7c8f4a5dbf9d7a8da3da39f70eb9bcf9c2f0f1ee",
+      "sha256": "6ce0161689b3853acaa03779ec93eafe75a02f4ced659bee03f50797806fa2fa",
       "requires_auth": true
     },
     {
