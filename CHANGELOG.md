@@ -88,7 +88,7 @@ Major performance and functionality overhaul based on successful Cloud project o
 ### 📥 Model Download System
 
 #### Comprehensive Model Library
-- **Added**: 160+ models across 10 categories
+- **Added**: 8 models across 8 categories
 - **Configuration**: `models_download.json`
 - **Script**: `scripts/download_models.py`
 
