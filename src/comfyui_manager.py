@@ -412,6 +412,7 @@ class ComfyUIManager:
                         requests.get(f"{base_url}/object_info", timeout=5)
                         print("🔥 Startup warmup: object_info primed")
                     except requests.exceptions.RequestException:
+                        # Warmup request failure is non-critical; safe to ignore.
                         pass
 
                 return True
