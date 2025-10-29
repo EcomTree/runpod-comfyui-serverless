@@ -42,7 +42,16 @@ for ((i=1; i<${#LINES[@]}; i++)); do
     echo "⤴️  Updating $name"
     git -C "$dest" pull --ff-only || true
   elif [[ -d "$dest" ]]; then
-    echo "📁 Reusing existing directory for $name"
+    # Directory exists but is not a valid git repo - validate and potentially reclone
+    echo "📁 Directory exists for $name - validating..."
+    if [[ -d "$dest/.git" ]] && git -C "$dest" rev-parse HEAD >/dev/null 2>&1; then
+      echo "✅ Valid git repository, reusing $name"
+    else
+      echo "⚠️ Directory is not a valid git repository, removing and recloning..."
+      rm -rf "$dest"
+      echo "⬇️  Cloning $name from $repo"
+      git clone --filter=blob:none "$repo" "$dest"
+    fi
   else
     echo "⬇️  Cloning $name from $repo"
     git clone --filter=blob:none "$repo" "$dest"

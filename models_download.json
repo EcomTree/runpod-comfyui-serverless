@@ -34,7 +34,6 @@
       "category": "loras",
       "filename": "sdxl_lora_example.safetensors",
       "url": "https://huggingface.co/pcmagne/sdxl-lora-example/resolve/main/model.safetensors?download=true",
-      "sha256": "d41d8cd98f00b204e9800998ecf8427e",
       "requires_auth": false
     },
     {

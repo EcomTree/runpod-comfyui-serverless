@@ -36,12 +36,38 @@ get_latest_release() {
 
 get_latest_tag_via_git() {
   # Use git ls-remote to list remote tags without cloning
+  # Temporarily disable errexit to handle "no tags found" gracefully
+  set +e
   tags=$(git ls-remote --tags "https://github.com/${REPO}.git" 2>/dev/null | awk '{print $2}' | grep -E 'refs/tags/' | sed 's#refs/tags/##' | grep -v '\^{}')
-  # Prefer tags that look like versions and sort semver-ish
-  latest=$(printf '%s\n' "$tags" | grep -E '^v?[0-9]+(\.[0-9]+)*' | sort -V | tail -n1)
-  if [[ -z "$latest" ]]; then
-    latest=$(printf '%s\n' "$tags" | sort -V | tail -n1)
+  status=$?
+  set -e
+  
+  # Only fail on real errors (status > 1), not on "no match" (status = 1)
+  if [[ $status -gt 1 ]]; then
+    return 1
   fi
+  
+  # Prefer tags that look like versions and sort semver-ish
+  set +e
+  latest=$(printf '%s\n' "$tags" | grep -E '^v?[0-9]+(\.[0-9]+)*' | sort -V | tail -n1)
+  status=$?
+  set -e
+  
+  if [[ $status -gt 1 ]]; then
+    return 1
+  fi
+  
+  if [[ -z "$latest" ]]; then
+    set +e
+    latest=$(printf '%s\n' "$tags" | sort -V | tail -n1)
+    status=$?
+    set -e
+    
+    if [[ $status -gt 1 ]]; then
+      return 1
+    fi
+  fi
+  
   if [[ -n "$latest" ]]; then
     printf '%s' "$latest"
     return 0

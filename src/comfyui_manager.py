@@ -596,8 +596,9 @@ class ComfyUIManager:
                 total = torch.cuda.get_device_properties(device).total_memory // (1024 * 1024)
                 capability = torch.cuda.get_device_capability(device)
                 print(f"🎛️  GPU: {name} | VRAM: {total} MB | CC: {capability}")
-        except Exception:
-            pass
+        except Exception as e:
+            # GPU info logging is non-critical; suppress errors but log if verbose
+            print(f"⚠️ Failed to log GPU info: {e}")
 
     def cleanup_temp_files(self, file_paths: List[Path]) -> int:
         """Clean up temporary ComfyUI output files"""

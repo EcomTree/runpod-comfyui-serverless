@@ -161,7 +161,7 @@ COPY rp_handler.py /workspace/rp_handler.py
 
 # Install app dependencies
 RUN --mount=type=cache,target=/root/.cache/pip pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    --mount=type=cache,target=/root/.cache/pip pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy prepared ComfyUI from builder stage
 COPY --from=builder /workspace/ComfyUI /workspace/ComfyUI

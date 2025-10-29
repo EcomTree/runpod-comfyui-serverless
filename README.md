@@ -125,13 +125,13 @@ docker build --build-arg COMFYUI_VERSION=v0.3.58 -t comfyui-serverless:latest -f
 4. **Download Models** (Optional)
    ```bash
    # Download all models
-   python3 scripts/download_models.py
-   
-   # Download specific model types
-   python3 scripts/download_models.py --types checkpoints loras
+   python3 scripts/download_models.py --config models_download.json
    
    # Download specific categories
-   python3 scripts/download_models.py --categories base realistic
+   python3 scripts/download_models.py --config models_download.json --categories checkpoints,loras
+   
+   # Download with custom concurrency
+   python3 scripts/download_models.py --config models_download.json --categories checkpoints,vae --concurrency 8
    ```
 
 5. **Push to Registry**
