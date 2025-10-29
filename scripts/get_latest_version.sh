@@ -38,7 +38,32 @@ get_latest_tag_via_git() {
   # Use git ls-remote to list remote tags without cloning
   # Temporarily disable errexit to handle "no tags found" gracefully
   set +e
-  tags=$(git ls-remote --tags "https://github.com/${REPO}.git" 2>/dev/null | awk '{print $2}' | grep -E 'refs/tags/' | sed 's#refs/tags/##' | grep -v '\^{}')
+  # Break pipeline into steps and check for errors
+  git_output=$(git ls-remote --tags "https://github.com/${REPO}.git" 2>/dev/null)
+  status=$?
+  if [[ $status -ne 0 ]]; then
+    set -e
+    return 1
+  fi
+  awk_output=$(printf '%s\n' "$git_output" | awk '{print $2}')
+  status=$?
+  if [[ $status -ne 0 ]]; then
+    set -e
+    return 1
+  fi
+  grep_tags=$(printf '%s\n' "$awk_output" | grep -E 'refs/tags/')
+  status=$?
+  if [[ $status -gt 1 ]]; then
+    set -e
+    return 1
+  fi
+  sed_tags=$(printf '%s\n' "$grep_tags" | sed 's#refs/tags/##')
+  status=$?
+  if [[ $status -ne 0 ]]; then
+    set -e
+    return 1
+  fi
+  tags=$(printf '%s\n' "$sed_tags" | grep -v '\^{}')
   status=$?
   set -e
   
