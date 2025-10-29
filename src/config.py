@@ -33,6 +33,11 @@ class Config:
             'comfy_refresh_models': self._parse_bool_env('COMFYUI_REFRESH_MODELS', 'true'),
             'cleanup_temp_files': self._parse_bool_env('CLEANUP_TEMP_FILES', 'true'),
             'debug_s3_urls': self._parse_bool_env('DEBUG_S3_URLS', 'false'),
+            # Performance & Serverless Optimizations
+            'enable_torch_compile': self._parse_bool_env('ENABLE_TORCH_COMPILE', 'false'),
+            'enable_optimizations': self._parse_bool_env('ENABLE_OPTIMIZATIONS', 'true'),
+            'prewarm_cuda': self._parse_bool_env('PREWARM_CUDA', 'true'),
+            'fast_startup': self._parse_bool_env('FAST_STARTUP', 'true'),
         })
 
         # S3 Configuration
