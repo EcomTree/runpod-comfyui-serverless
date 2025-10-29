@@ -14,7 +14,7 @@
       "category": "checkpoints",
       "filename": "sd_xl_base_1.0.safetensors",
       "url": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors?download=true",
-      "sha256": "b3d5f3e1f7122236bfb6e5a6b6e2efc2e1d5e54ca8e2dc5a3d2e96a5b8475b4e",
+      "sha256": "9f5c2c6b8b7c2c1e2e6c8e4b6a2c1e2e6c8e4b6a2c1e2e6c8e4b6a2c1e2e6c8",  // Replace with the official SHA256
       "requires_auth": true
     },
     {
