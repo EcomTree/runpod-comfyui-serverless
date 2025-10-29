@@ -8,7 +8,6 @@ import os
 import sys
 import time
 import argparse
-import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
