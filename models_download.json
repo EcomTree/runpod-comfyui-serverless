@@ -21,7 +21,7 @@
       "category": "vae",
       "filename": "sdxl_vae.safetensors",
       "url": "https://huggingface.co/stabilityai/sdxl-vae/resolve/main/sdxl_vae.safetensors?download=true",
-      "sha256": "a4bcd2e52b723b2f8f81d483be1c2d9060176c0b31bdeae9a4bea915a1c99f6d",
+      "sha256": "89c850c4b7c6c8e4e1e2b1a7b6a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8",
       "requires_auth": true
     },
     {
