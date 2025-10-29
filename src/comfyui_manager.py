@@ -364,6 +364,9 @@ class ComfyUIManager:
             with open(stdout_log, "a") as stdout_file, open(stderr_log, "a") as stderr_file:
 
                 # Prepare environment with performance flags
+                # These environment variables are consumed by sitecustomize.py, which calls
+                # scripts/optimize_performance.py to configure PyTorch backend settings.
+                # See optimize_performance.py for full documentation of these variables.
                 child_env = os.environ.copy()
                 child_env["ENABLE_TF32"] = "1" if config.get('enable_tf32', True) else "0"
                 child_env["ENABLE_CUDNN_BENCHMARK"] = "1" if config.get('enable_cudnn_benchmark', True) else "0"
