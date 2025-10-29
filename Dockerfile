@@ -87,9 +87,9 @@ RUN --mount=type=cache,target=/root/.cache/pip pip install --no-cache-dir libros
 # ------------------------------------------------------------
 # Performance Optimizations
 # ------------------------------------------------------------
-COPY scripts/optimize_performance.py /workspace/scripts/optimize_performance.py
-RUN chmod +x /workspace/scripts/optimize_performance.py && \
-    python3 /workspace/scripts/optimize_performance.py --comfyui-path /workspace/ComfyUI
+COPY scripts/cold_start_optimizer.py /workspace/scripts/cold_start_optimizer.py
+RUN chmod +x /workspace/scripts/cold_start_optimizer.py && \
+    python3 /workspace/scripts/cold_start_optimizer.py --comfyui-path /workspace/ComfyUI
 
 # ------------------------------------------------------------
 # Custom Nodes Installation
