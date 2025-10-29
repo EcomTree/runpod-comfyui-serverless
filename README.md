@@ -163,7 +163,7 @@ The handler supports the following environment variables:
 - `MATMUL_PRECISION`: highest | high (default) | medium
 - `COMFY_EXTRA_ARGS`: Extra CLI flags passed to ComfyUI at startup
 - **Deprecated (kept for backward compatibility)**: `DISABLE_SMART_MEMORY`, `FORCE_FP16`, `COLD_START_OPTIMIZATION`, `PRELOAD_MODELS`, `GPU_MEMORY_FRACTION`
-  - **Deprecation Notice:** These variables will be removed in version 4.0 (planned Q4 2024). Please migrate to the modern configuration detailed below:
+  - **Deprecation Notice:** These variables are now deprecated as of version 4.0 (released Q4 2024) and may be removed in future releases. Please migrate to the modern configuration detailed below:
     - `DISABLE_SMART_MEMORY`: Use the default smart memory behaviour or refer to `docs/performance-tuning.md` for advanced memory flags.
     - `FORCE_FP16`: Adjust precision using `MATMUL_PRECISION` or relevant PyTorch environment flags instead.
     - `COLD_START_OPTIMIZATION`: Cold start improvements are now automatic; no manual flag is required.
