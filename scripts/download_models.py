@@ -67,11 +67,17 @@ def download_file(url: str, dest: Path, headers: Optional[Dict[str, str]] = None
                 now = time.time()
                 if total and (now - last_progress) > 5:
                     pct = downloaded * 100.0 / total
-                    sys.stdout.write(f"\r⬇️  {dest.name}: {pct:.1f}% ({downloaded/1e6:.1f}/{total/1e6:.1f} MB)")
-                    sys.stdout.flush()
+                    if sys.stdout.isatty():
+                        sys.stdout.write(f"\r⬇️  {dest.name}: {pct:.1f}% ({downloaded/1e6:.1f}/{total/1e6:.1f} MB)")
+                        sys.stdout.flush()
+                    else:
+                        print(f"⬇️  {dest.name}: {pct:.1f}% ({downloaded/1e6:.1f}/{total/1e6:.1f} MB)")
                     last_progress = now
     tmp.rename(dest)
-    sys.stdout.write(f"\r✅ {dest.name}: 100%\n")
+    if sys.stdout.isatty():
+        sys.stdout.write(f"\r✅ {dest.name}: 100%\n")
+    else:
+        print(f"✅ {dest.name}: 100%")
 
 
 def build_headers(url: str) -> Dict[str, str]:
