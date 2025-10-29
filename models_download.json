@@ -54,7 +54,7 @@
       "category": "text_encoders",
       "filename": "sdxl_text_encoder_2.safetensors",
       "url": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/text_encoder_2.safetensors?download=true",
-      "sha256": "9d8d0a76b9d1b46b0e3a7d6bb8e1d2dd37d4a23a570c3a3ebcf4a54147e4e3e4",
+      "sha256": "b8055c8b2b6b6c6e7a3a0655e768f8b1a79cd13e341fa9a316bed112fb1f7e2e",
       "requires_auth": true
     }
   ]
