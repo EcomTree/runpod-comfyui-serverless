@@ -89,9 +89,9 @@ def _wrap_torch_compile() -> None:
                 dynamic=dynamic,
             )
 
-        # Register globally for optional usage by downstream code
-        import builtins  # type: ignore
-        setattr(builtins, "COMFY_TORCH_COMPILE", compile_module_fn)
+        # Expose as a module-level variable for optional usage by downstream code
+        global COMFY_TORCH_COMPILE
+        COMFY_TORCH_COMPILE = compile_module_fn
 
         # Soft log
         print(
