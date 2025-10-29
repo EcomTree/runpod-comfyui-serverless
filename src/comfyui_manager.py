@@ -350,8 +350,9 @@ class ComfyUIManager:
         if isinstance(extra_args, str) and extra_args.strip():
             try:
                 comfy_cmd.extend(shlex.split(extra_args))
-            except Exception:
-                print(f"⚠️ Could not parse COMFY_EXTRA_ARGS: '{extra_args}'")
+            except Exception as e:
+                print(f"⚠️ Could not parse COMFY_EXTRA_ARGS: '{extra_args}' - {type(e).__name__}: {e}")
+                traceback.print_exc()
         print(f"🎯 ComfyUI Start Command: {' '.join(comfy_cmd)}")
 
         # Create log files for debugging
