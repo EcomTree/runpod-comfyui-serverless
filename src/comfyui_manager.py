@@ -748,8 +748,9 @@ class ComfyUIManager:
                 if lines:
                     line = lines[0]
                     parts = [p.strip() for p in line.split(",")]
+                    # Expected nvidia-smi output: "name, memory.total [MiB], compute_cap"
                     if len(parts) >= 3:
-                        name, vram, cc = parts[0], parts[1], parts[2]
+                        name, vram, cc = parts[:3]
                         print(f"🎛️  GPU: {name} | VRAM: {vram} | CC: {cc}")
                     else:
                         print(f"🧩 GPU: {line}")
