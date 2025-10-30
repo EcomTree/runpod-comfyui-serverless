@@ -470,6 +470,8 @@ class ComfyUIManager:
                 # scripts/optimize_performance.py to configure PyTorch backend settings.
                 # See optimize_performance.py for full documentation of these variables.
                 child_env = os.environ.copy()
+                # Prevent early torch import via sitecustomize while ComfyUI initializes
+                child_env["SKIP_TORCH_OPTIMIZATIONS"] = "1"
                 child_env["ENABLE_TF32"] = (
                     "1" if config.get("enable_tf32", True) else "0"
                 )
@@ -729,18 +731,30 @@ class ComfyUIManager:
     def _log_gpu_info(self) -> None:
         """Log basic GPU information for diagnostics in serverless context"""
         try:
-            import torch
-
-            available = torch.cuda.is_available()
-            print(f"🧩 CUDA available: {available}")
-            if available:
-                device = torch.device("cuda")
-                name = torch.cuda.get_device_name(device)
-                total = torch.cuda.get_device_properties(device).total_memory // (
-                    1024 * 1024
-                )
-                capability = torch.cuda.get_device_capability(device)
-                print(f"🎛️  GPU: {name} | VRAM: {total} MB | CC: {capability}")
+            # Avoid importing torch before ComfyUI startup; use nvidia-smi for diagnostics
+            result = subprocess.run(
+                [
+                    "nvidia-smi",
+                    "--query-gpu=name,memory.total,compute_cap",
+                    "--format=csv,noheader",
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                text=True,
+                check=False,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                line = result.stdout.strip().splitlines()[0]
+                parts = [p.strip() for p in line.split(",")]
+                if len(parts) >= 3:
+                    name, vram, cc = parts[0], parts[1], parts[2]
+                    print(f"🎛️  GPU: {name} | VRAM: {vram} | CC: {cc}")
+                else:
+                    print(f"🧩 GPU: {line}")
+            else:
+                # Fallback minimal signal
+                visible = os.getenv("NVIDIA_VISIBLE_DEVICES", "unknown")
+                print(f"🧩 CUDA visible devices: {visible}")
         except Exception as e:
             # GPU info logging is non-critical; suppress errors but log if verbose
             print(f"⚠️ Could not log GPU info: {e}")
