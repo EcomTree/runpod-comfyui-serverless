@@ -9,6 +9,7 @@ import time
 import traceback
 import uuid
 import sys
+from collections import deque
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 
@@ -225,6 +226,27 @@ class ComfyUIManager:
             pass
         return False
 
+    def _check_process_health(self, i: int, max_retries: int) -> bool:
+        """Check if ComfyUI process has exited unexpectedly
+        
+        Args:
+            i: Current attempt number (0-indexed)
+            max_retries: Maximum number of retries
+            
+        Returns:
+            True if process is healthy or not running, False if process exited
+        """
+        if self._comfyui_process:
+            return_code = self._comfyui_process.poll()
+            if return_code is not None:
+                print(
+                    f"❌ ComfyUI process exited while waiting for startup (exit code: {return_code}, attempt {i + 1}/{max_retries})"
+                )
+                self._tail_comfyui_logs()
+                self._comfyui_process = None
+                return False
+        return True
+
     def _wait_for_comfyui(self, max_retries: int = None, delay: int = 2) -> bool:
         """Wait until ComfyUI is ready"""
         # Use configured timeout or default
@@ -236,15 +258,8 @@ class ComfyUIManager:
         print(f"⏳ Waiting for ComfyUI to start (timeout: {max_retries * delay}s = {max_retries * delay / 60:.1f} min)...")
 
         for i in range(max_retries):
-            if self._comfyui_process:
-                return_code = self._comfyui_process.poll()
-                if return_code is not None:
-                    print(
-                        f"❌ ComfyUI process exited while waiting for startup (exit code: {return_code}, attempt {i + 1}/{max_retries})"
-                    )
-                    self._tail_comfyui_logs()
-                    self._comfyui_process = None
-                    return False
+            if not self._check_process_health(i, max_retries):
+                return False
 
             try:
                 response = requests.get(f"{base_url}/system_stats", timeout=5)
@@ -259,15 +274,8 @@ class ComfyUIManager:
                 if (i + 1) % 5 == 0:
                     elapsed = (i + 1) * delay
                     print(f"⏳ Still waiting for ComfyUI... ({elapsed}s / {max_retries * delay}s)")
-                if self._comfyui_process:
-                    return_code = self._comfyui_process.poll()
-                    if return_code is not None:
-                        print(
-                            f"❌ ComfyUI process exited while waiting for startup (exit code: {return_code}, attempt {i + 1}/{max_retries})"
-                        )
-                        self._tail_comfyui_logs()
-                        self._comfyui_process = None
-                        return False
+                if not self._check_process_health(i, max_retries):
+                    return False
                 time.sleep(delay)
 
         print(f"❌ ComfyUI failed to start after {max_retries * delay}s ({max_retries * delay / 60:.1f} min)!")
@@ -289,10 +297,10 @@ class ComfyUIManager:
                     print(f"⚠️ Log file {path} does not exist.")
                     continue
                 with open(path, "r") as log_file:
-                    log_lines = log_file.readlines()
-                tail_lines = log_lines[-lines:] if len(log_lines) > lines else log_lines
-                for line in tail_lines:
-                    print(line.rstrip())
+                    # Use deque with maxlen for memory-efficient tail operation
+                    tail_lines = deque(log_file, maxlen=lines)
+                    for line in tail_lines:
+                        print(line.rstrip())
             except Exception as error:
                 print(f"⚠️ Could not read {path.name}: {error}")
         print("=" * 60)
