@@ -7,7 +7,7 @@ import os
 
 try:
     # Allow callers to defer torch-related optimizations to avoid early import of torch
-    if os.getenv("SKIP_TORCH_OPTIMIZATIONS", "0").strip() != "1":
+    if os.getenv("SKIP_TORCH_OPTIMIZATIONS", "0").strip().lower() not in ("1", "true", "yes"):
         # Ensure workspace is on sys.path before importing
         workspace_dir = os.path.dirname(os.path.abspath(__file__))
         if workspace_dir not in sys.path:
