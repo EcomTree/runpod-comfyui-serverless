@@ -744,13 +744,19 @@ class ComfyUIManager:
                 check=False,
             )
             if result.returncode == 0 and result.stdout.strip():
-                line = result.stdout.strip().splitlines()[0]
-                parts = [p.strip() for p in line.split(",")]
-                if len(parts) >= 3:
-                    name, vram, cc = parts[0], parts[1], parts[2]
-                    print(f"🎛️  GPU: {name} | VRAM: {vram} | CC: {cc}")
+                lines = result.stdout.strip().splitlines()
+                if lines:
+                    line = lines[0]
+                    parts = [p.strip() for p in line.split(",")]
+                    if len(parts) >= 3:
+                        name, vram, cc = parts[0], parts[1], parts[2]
+                        print(f"🎛️  GPU: {name} | VRAM: {vram} | CC: {cc}")
+                    else:
+                        print(f"🧩 GPU: {line}")
                 else:
-                    print(f"🧩 GPU: {line}")
+                    # Fallback minimal signal
+                    visible = os.getenv("NVIDIA_VISIBLE_DEVICES", "unknown")
+                    print(f"🧩 CUDA visible devices: {visible}")
             else:
                 # Fallback minimal signal
                 visible = os.getenv("NVIDIA_VISIBLE_DEVICES", "unknown")
