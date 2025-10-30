@@ -1,6 +1,7 @@
 """
 Workflow processing utilities for ComfyUI
 """
+
 import copy
 import random
 import time
@@ -27,7 +28,7 @@ class WorkflowProcessor:
             dict: Modified workflow with randomized seeds (deep copy)
         """
         # Check if seed randomization is disabled via env var
-        if not config.get('randomize_seeds', True):
+        if not config.get("randomize_seeds", True):
             print("🎲 Seed randomization disabled via RANDOMIZE_SEEDS=false")
             return workflow
 
@@ -39,7 +40,12 @@ class WorkflowProcessor:
         for node_id, node_data in workflow.items():
             if isinstance(node_data, dict) and "inputs" in node_data:
                 inputs = node_data["inputs"]
-                self._randomize_seeds_in_obj(inputs, node_id=node_id, path="inputs", randomized_count=randomized_count)
+                self._randomize_seeds_in_obj(
+                    inputs,
+                    node_id=node_id,
+                    path="inputs",
+                    randomized_count=randomized_count,
+                )
 
         if randomized_count[0] > 0:
             print(f"✅ Randomized {randomized_count[0]} seed(s) in workflow")
@@ -51,10 +57,10 @@ class WorkflowProcessor:
     def _generate_random_seed(self):
         """
         Generate a random seed value using getrandbits for better performance.
-        
+
         Returns:
             int: Random seed in range 0 to 2^31-1 (2,147,483,647)
-            
+
         Note:
             Uses 31 bits (not 32) to ensure compatibility with signed 32-bit integers
             used by ComfyUI nodes. This avoids potential overflow issues with nodes
@@ -63,7 +69,9 @@ class WorkflowProcessor:
         # Use getrandbits(31) for signed 32-bit int compatibility and performance
         return random.getrandbits(31)
 
-    def _randomize_seeds_in_obj(self, obj, node_id=None, path="", randomized_count=None):
+    def _randomize_seeds_in_obj(
+        self, obj, node_id=None, path="", randomized_count=None
+    ):
         """Recursively traverse and randomize all seed values in nested structures"""
         if randomized_count is None:
             randomized_count = [0]
@@ -79,18 +87,31 @@ class WorkflowProcessor:
                     randomized_count[0] += 1
 
                     if node_id is not None:
-                        print(f"🎲 Node {node_id}: Randomized seed at {current_path}: {old_seed} → {new_seed}")
+                        print(
+                            f"🎲 Node {node_id}: Randomized seed at {current_path}: {old_seed} → {new_seed}"
+                        )
                     else:
-                        print(f"🎲 Randomized seed at {current_path}: {old_seed} → {new_seed}")
+                        print(
+                            f"🎲 Randomized seed at {current_path}: {old_seed} → {new_seed}"
+                        )
                 else:
                     # Recursively process nested structures
-                    self._randomize_seeds_in_obj(value, node_id=node_id, path=current_path, randomized_count=randomized_count)
+                    self._randomize_seeds_in_obj(
+                        value,
+                        node_id=node_id,
+                        path=current_path,
+                        randomized_count=randomized_count,
+                    )
 
         elif isinstance(obj, list):
             for idx, item in enumerate(obj):
                 current_path = f"{path}[{idx}]" if path else f"[{idx}]"
-                self._randomize_seeds_in_obj(item, node_id=node_id, path=current_path, randomized_count=randomized_count)
-
+                self._randomize_seeds_in_obj(
+                    item,
+                    node_id=node_id,
+                    path=current_path,
+                    randomized_count=randomized_count,
+                )
 
     def extract_checkpoint_names(self, object_info: Dict[str, Any]) -> List[str]:
         """Safely extract checkpoint names from ComfyUI object_info response"""
@@ -117,7 +138,9 @@ class WorkflowProcessor:
 
     def find_save_nodes(self, workflow: Dict[str, Any]) -> List[str]:
         """Find all SaveImage nodes in the workflow"""
-        save_nodes = [k for k, v in workflow.items() if v.get("class_type") == "SaveImage"]
+        save_nodes = [
+            k for k, v in workflow.items() if v.get("class_type") == "SaveImage"
+        ]
         print(f"💾 SaveImage Nodes found: {len(save_nodes)}")
         return save_nodes
 

@@ -1,6 +1,7 @@
 """
 S3 storage handler for RunPod ComfyUI Serverless
 """
+
 import datetime
 import mimetypes
 import shutil
@@ -24,13 +25,14 @@ class S3Handler:
         self._s3_client = None
         self._logger = None
         self._debug_warning_logged = False
-    
+
     @property
     def logger(self):
         """Lazy initialization of logger to avoid circular imports"""
         if self._logger is None:
             from .logger import get_logger
-            self._logger = get_logger('s3_handler')
+
+            self._logger = get_logger("s3_handler")
         return self._logger
 
     def _get_s3_client(self):
@@ -39,21 +41,21 @@ class S3Handler:
             s3_config = config.get_s3_config()
 
             client_kwargs = {
-                'aws_access_key_id': s3_config['access_key'],
-                'aws_secret_access_key': s3_config['secret_key'],
-                'config': Config(
-                    signature_version=s3_config['signature_version'],
-                    s3={'addressing_style': s3_config['addressing_style']}
+                "aws_access_key_id": s3_config["access_key"],
+                "aws_secret_access_key": s3_config["secret_key"],
+                "config": Config(
+                    signature_version=s3_config["signature_version"],
+                    s3={"addressing_style": s3_config["addressing_style"]},
                 ),
             }
 
-            if s3_config['endpoint_url']:
-                client_kwargs['endpoint_url'] = s3_config['endpoint_url']
+            if s3_config["endpoint_url"]:
+                client_kwargs["endpoint_url"] = s3_config["endpoint_url"]
 
-            if s3_config['region']:
-                client_kwargs['region_name'] = s3_config['region']
+            if s3_config["region"]:
+                client_kwargs["region_name"] = s3_config["region"]
 
-            self._s3_client = boto3.client('s3', **client_kwargs)
+            self._s3_client = boto3.client("s3", **client_kwargs)
 
         return self._s3_client
 
@@ -66,40 +68,41 @@ class S3Handler:
 
         if mime_type is None:
             fallback_types = {
-                '.png': 'image/png',
-                '.jpg': 'image/jpeg',
-                '.jpeg': 'image/jpeg',
-                '.webp': 'image/webp',
-                '.gif': 'image/gif',
-                '.mp4': 'video/mp4',
-                '.avi': 'video/x-msvideo',
-                '.mov': 'video/quicktime',
-                '.webm': 'video/webm',
+                ".png": "image/png",
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".webp": "image/webp",
+                ".gif": "image/gif",
+                ".mp4": "video/mp4",
+                ".avi": "video/x-msvideo",
+                ".mov": "video/quicktime",
+                ".webm": "video/webm",
             }
-            mime_type = fallback_types.get(file_path.suffix.lower(), 'application/octet-stream')
+            mime_type = fallback_types.get(
+                file_path.suffix.lower(), "application/octet-stream"
+            )
 
         return mime_type
 
     def sanitize_url_for_logging(self, url: str) -> str:
         """Sanitize URL for safe logging by removing sensitive query parameters"""
         # If debug mode is enabled, return full URL without sanitization
-        if config.get('debug_s3_urls', False):
+        if config.get("debug_s3_urls", False):
             # Log a warning once when debug mode is active
             if not self._debug_warning_logged:
-                self.logger.warning("⚠️ DEBUG_S3_URLS is enabled - full presigned URLs with authentication tokens will be logged. This should only be used in development environments!")
+                self.logger.warning(
+                    "⚠️ DEBUG_S3_URLS is enabled - full presigned URLs with authentication tokens will be logged. This should only be used in development environments!"
+                )
                 self._debug_warning_logged = True
             return url
-        
+
         try:
             parsed = urlparse(url)
 
-            if parsed.query and 'X-Amz-Signature' in parsed.query:
-                sanitized = urlunparse((
-                    parsed.scheme,
-                    parsed.netloc,
-                    parsed.path,
-                    '', '', ''
-                ))
+            if parsed.query and "X-Amz-Signature" in parsed.query:
+                sanitized = urlunparse(
+                    (parsed.scheme, parsed.netloc, parsed.path, "", "", "")
+                )
                 return f"{sanitized} [presigned - query params redacted for security]"
             else:
                 return url
@@ -115,7 +118,9 @@ class S3Handler:
             s3_client = self._get_s3_client()
 
             # Generate S3 key with job_id prefix and timestamp
-            timestamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.datetime.now(datetime.timezone.utc).strftime(
+                "%Y%m%d_%H%M%S"
+            )
             s3_key = f"{job_id}/{timestamp}_{file_path.name}"
 
             # Determine content type
@@ -123,7 +128,9 @@ class S3Handler:
             self.logger.debug(f"Detected content type: {content_type}")
 
             # Upload file
-            self.logger.debug(f"Uploading to bucket: {s3_config['bucket']}, key: {s3_key}")
+            self.logger.debug(
+                f"Uploading to bucket: {s3_config['bucket']}, key: {s3_key}"
+            )
             with open(file_path, "rb") as f:
                 s3_client.upload_fileobj(
                     f,
@@ -132,7 +139,7 @@ class S3Handler:
                     ExtraArgs={
                         "ContentType": content_type,
                         "CacheControl": s3_config["cache_control"],
-                    }
+                    },
                 )
 
             # Generate URL
@@ -150,12 +157,7 @@ class S3Handler:
             safe_url = self.sanitize_url_for_logging(url)
             self.logger.info(f"Generated URL: {safe_url}")
 
-            return {
-                "success": True,
-                "url": url,
-                "s3_key": s3_key,
-                "error": None
-            }
+            return {"success": True, "url": url, "s3_key": s3_key, "error": None}
 
         except NoCredentialsError:
             error_msg = "S3 credentials not found or invalid"
@@ -179,7 +181,9 @@ class S3Handler:
 
         try:
             volume_config = config.get_volume_config()
-            volume_output_dir = volume_config['runpod_volume_path'] / "comfyui" / "output"
+            volume_output_dir = (
+                volume_config["runpod_volume_path"] / "comfyui" / "output"
+            )
             volume_output_dir.mkdir(parents=True, exist_ok=True)
 
             # Unique filename with timestamp and UUID for better collision resistance
@@ -193,23 +197,17 @@ class S3Handler:
             shutil.copy2(file_path, dest_path)
 
             self.logger.info(f"File successfully copied to: {dest_path}")
-            self.logger.debug(f"File size: {dest_path.stat().st_size / (1024*1024):.2f} MB")
+            self.logger.debug(
+                f"File size: {dest_path.stat().st_size / (1024*1024):.2f} MB"
+            )
 
-            return {
-                "success": True,
-                "path": str(dest_path),
-                "error": None
-            }
+            return {"success": True, "path": str(dest_path), "error": None}
 
         except Exception as e:
             error_msg = f"Error copying {file_path.name}: {e}"
             self.logger.error(f"Volume Copy Error: {error_msg}")
             self.logger.debug(f"Traceback: {traceback.format_exc()}")
-            return {
-                "success": False,
-                "path": None,
-                "error": error_msg
-            }
+            return {"success": False, "path": None, "error": error_msg}
 
 
 # Global S3 handler instance
