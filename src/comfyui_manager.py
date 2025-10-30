@@ -758,8 +758,8 @@ class ComfyUIManager:
                         print(f"🧩 GPU: {line}")
                         gpu_info_logged = True
             
+            # Fallback minimal signal if GPU info wasn't logged
             if not gpu_info_logged:
-                # Fallback minimal signal
                 visible = os.getenv("NVIDIA_VISIBLE_DEVICES", "unknown")
                 print(f"🧩 CUDA visible devices: {visible}")
         except Exception as e:
