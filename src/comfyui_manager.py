@@ -312,8 +312,6 @@ class ComfyUIManager:
                     print(
                         f"⏳ Still waiting for ComfyUI... ({elapsed}s / {max_retries * delay}s)"
                     )
-                if not self._check_process_health(i, max_retries):
-                    return False
                 time.sleep(delay)
 
         print(
