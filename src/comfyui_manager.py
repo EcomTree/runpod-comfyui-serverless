@@ -236,6 +236,16 @@ class ComfyUIManager:
         print(f"⏳ Waiting for ComfyUI to start (timeout: {max_retries * delay}s = {max_retries * delay / 60:.1f} min)...")
 
         for i in range(max_retries):
+            if self._comfyui_process:
+                return_code = self._comfyui_process.poll()
+                if return_code is not None:
+                    print(
+                        f"❌ ComfyUI process exited while waiting for startup (exit code: {return_code}, attempt {i + 1}/{max_retries})"
+                    )
+                    self._tail_comfyui_logs()
+                    self._comfyui_process = None
+                    return False
+
             try:
                 response = requests.get(f"{base_url}/system_stats", timeout=5)
                 if response.status_code == 200:
@@ -249,10 +259,43 @@ class ComfyUIManager:
                 if (i + 1) % 5 == 0:
                     elapsed = (i + 1) * delay
                     print(f"⏳ Still waiting for ComfyUI... ({elapsed}s / {max_retries * delay}s)")
+                if self._comfyui_process:
+                    return_code = self._comfyui_process.poll()
+                    if return_code is not None:
+                        print(
+                            f"❌ ComfyUI process exited while waiting for startup (exit code: {return_code}, attempt {i + 1}/{max_retries})"
+                        )
+                        self._tail_comfyui_logs()
+                        self._comfyui_process = None
+                        return False
                 time.sleep(delay)
 
         print(f"❌ ComfyUI failed to start after {max_retries * delay}s ({max_retries * delay / 60:.1f} min)!")
         return False
+
+    def _tail_comfyui_logs(self, lines: int = 50) -> None:
+        """Print the last lines of the ComfyUI stdout and stderr logs"""
+        log_files = {
+            "stdout": self._comfyui_logs_path / "comfyui_stdout.log",
+            "stderr": self._comfyui_logs_path / "comfyui_stderr.log",
+        }
+
+        for label, path in log_files.items():
+            print("=" * 60)
+            print(f"📋 Last {lines} lines of ComfyUI {label} log ({path}):")
+            print("=" * 60)
+            try:
+                if not path.exists():
+                    print(f"⚠️ Log file {path} does not exist.")
+                    continue
+                with open(path, "r") as log_file:
+                    log_lines = log_file.readlines()
+                tail_lines = log_lines[-lines:] if len(log_lines) > lines else log_lines
+                for line in tail_lines:
+                    print(line.rstrip())
+            except Exception as error:
+                print(f"⚠️ Could not read {path.name}: {error}")
+        print("=" * 60)
 
     def _force_model_refresh(self) -> bool:
         """Attempt model refresh via manager endpoint, fallback to direct scan"""
@@ -394,19 +437,8 @@ class ComfyUIManager:
                 # Wait until ComfyUI is ready
                 if not self._wait_for_comfyui():
                     print("❌ ComfyUI failed to start, check logs for details")
-
-                    try:
-                        with open(stderr_log, "r") as f:
-                            lines = f.readlines()
-                            last_lines = lines[-50:] if len(lines) > 50 else lines
-                            print("=" * 60)
-                            print("📋 Last 50 lines of ComfyUI stderr:")
-                            print("=" * 60)
-                            for line in last_lines:
-                                print(line.rstrip())
-                            print("=" * 60)
-                    except Exception as e:
-                        print(f"⚠️ Could not read stderr log: {e}")
+                    if self._comfyui_process:
+                        self._tail_comfyui_logs()
 
                     return False
 
