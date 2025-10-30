@@ -266,7 +266,7 @@ class ComfyUIManager:
             max_retries: Maximum number of retries
 
         Returns:
-            True if process is healthy or not running, False if process exited
+            True if process is still running or not yet started, False if process has exited unexpectedly
         """
         if self._comfyui_process:
             return_code = self._comfyui_process.poll()
