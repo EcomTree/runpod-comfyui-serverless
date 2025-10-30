@@ -1,0 +1,35 @@
+{
+  "install_root": "/workspace/ComfyUI/custom_nodes",
+  "nodes": [
+    {
+      "name": "ComfyUI-Manager",
+      "repo": "https://github.com/ltdrdata/ComfyUI-Manager.git",
+      "install_requirements": true
+    },
+    {
+      "name": "ComfyUI-Impact-Pack",
+      "repo": "https://github.com/ltdrdata/ComfyUI-Impact-Pack.git",
+      "install_requirements": true
+    },
+    {
+      "name": "rgthree-comfy",
+      "repo": "https://github.com/rgthree/rgthree-comfy.git",
+      "install_requirements": true
+    },
+    {
+      "name": "ComfyUI-Advanced-ControlNet",
+      "repo": "https://github.com/Kosinkadink/ComfyUI-Advanced-ControlNet.git",
+      "install_requirements": true
+    },
+    {
+      "name": "ComfyUI-VideoHelperSuite",
+      "repo": "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git",
+      "install_requirements": true
+    },
+    {
+      "name": "ComfyUI_LoadImageFromHttpURL",
+      "repo": "https://github.com/jerrywap/ComfyUI_LoadImageFromHttpURL.git",
+      "install_requirements": true
+    }
+  ]
+}
