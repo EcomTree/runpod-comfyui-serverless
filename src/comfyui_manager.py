@@ -743,6 +743,7 @@ class ComfyUIManager:
                 text=True,
                 check=False,
             )
+            gpu_info_logged = False
             if result.returncode == 0 and result.stdout.strip():
                 lines = result.stdout.strip().splitlines()
                 if lines:
@@ -752,13 +753,12 @@ class ComfyUIManager:
                     if len(parts) >= 3:
                         name, vram, cc = parts[:3]
                         print(f"🎛️  GPU: {name} | VRAM: {vram} | CC: {cc}")
+                        gpu_info_logged = True
                     else:
                         print(f"🧩 GPU: {line}")
-                else:
-                    # Fallback minimal signal
-                    visible = os.getenv("NVIDIA_VISIBLE_DEVICES", "unknown")
-                    print(f"🧩 CUDA visible devices: {visible}")
-            else:
+                        gpu_info_logged = True
+            
+            if not gpu_info_logged:
                 # Fallback minimal signal
                 visible = os.getenv("NVIDIA_VISIBLE_DEVICES", "unknown")
                 print(f"🧩 CUDA visible devices: {visible}")
