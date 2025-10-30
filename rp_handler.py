@@ -51,7 +51,10 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
             return {"error": "Workflow could not be executed"}
 
         # Find generated images
-        workflow_start_time = result.get("_workflow_start_time", time.time() - config.get_workflow_config()['default_workflow_duration'])
+        workflow_start_time = result.get(
+            "_workflow_start_time",
+            time.time() - config.get_workflow_config()["default_workflow_duration"],
+        )
         image_paths = comfyui_manager.find_generated_images(result, workflow_start_time)
 
         if not image_paths:
@@ -79,13 +82,14 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
                     output_urls.append(s3_result["url"])
                     s3_success_count += 1
                 else:
-                    failed_uploads.append({
-                        "source": str(img_path),
-                        "error": s3_result["error"]
-                    })
+                    failed_uploads.append(
+                        {"source": str(img_path), "error": s3_result["error"]}
+                    )
                     if volume_result["success"]:
                         output_urls.append(volume_result["path"])
-                        print(f"⚠️ S3 upload failed for {img_path.name}, using volume path as fallback")
+                        print(
+                            f"⚠️ S3 upload failed for {img_path.name}, using volume path as fallback"
+                        )
             else:
                 # No S3, use volume paths as URLs
                 if volume_result["success"]:
@@ -102,7 +106,9 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
             return {"error": error_message}
 
         # Determine storage type
-        actual_storage_type = "s3" if (config.is_s3_configured() and s3_success_count > 0) else "volume"
+        actual_storage_type = (
+            "s3" if (config.is_s3_configured() and s3_success_count > 0) else "volume"
+        )
 
         # Build response
         response = {
@@ -126,7 +132,7 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
         if failed_uploads:
             response["warnings"] = {
                 "failed_uploads": len(failed_uploads),
-                "details": failed_uploads
+                "details": failed_uploads,
             }
             print(f"⚠️ {len(failed_uploads)} image(s) failed to upload")
 

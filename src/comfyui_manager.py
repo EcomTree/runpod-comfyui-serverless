@@ -1,6 +1,7 @@
 """
 ComfyUI server management for RunPod Serverless
 """
+
 import os
 import shlex
 import shutil
@@ -23,8 +24,8 @@ class ComfyUIManager:
 
     def __init__(self):
         self._comfyui_process = None
-        self._comfyui_path = config.get_workspace_config()['comfyui_path']
-        self._comfyui_logs_path = config.get_workspace_config()['comfyui_logs_path']
+        self._comfyui_path = config.get_workspace_config()["comfyui_path"]
+        self._comfyui_logs_path = config.get_workspace_config()["comfyui_logs_path"]
 
     def _detect_comfyui_version(self) -> str:
         """Detect ComfyUI version from git repo or fallback markers"""
@@ -64,7 +65,9 @@ class ComfyUIManager:
         except Exception:
             return "unknown"
 
-    def _wait_for_path(self, path: Path, timeout: int = 20, poll_interval: float = 1.0) -> bool:
+    def _wait_for_path(
+        self, path: Path, timeout: int = 20, poll_interval: float = 1.0
+    ) -> bool:
         """Wait until a path exists or timeout is reached"""
         deadline = time.time() + timeout
         while time.time() < deadline:
@@ -76,14 +79,14 @@ class ComfyUIManager:
     def _get_volume_base(self) -> Path:
         """Determine the base mount path for the Network Volume"""
         volume_config = config.get_volume_config()
-        timeout = volume_config['network_volume_timeout']
+        timeout = volume_config["network_volume_timeout"]
 
-        volume_path = volume_config['runpod_volume_path']
+        volume_path = volume_config["runpod_volume_path"]
         if self._wait_for_path(volume_path, timeout=timeout):
             print(f"📦 Detected Serverless Network Volume at {volume_path}")
             return volume_path
 
-        workspace_path = config.get_workspace_config()['workspace_path']
+        workspace_path = config.get_workspace_config()["workspace_path"]
         print(f"📦 Using {workspace_path} as volume base (no {volume_path} detected)")
         return workspace_path
 
@@ -97,14 +100,16 @@ class ComfyUIManager:
 
             # Check the most common Volume Model structures
             possible_volume_model_dirs = []
-            override_dir = config.get_volume_config().get('volume_models_dir')
+            override_dir = config.get_volume_config().get("volume_models_dir")
             if override_dir:
                 possible_volume_model_dirs.append(Path(override_dir))
-            possible_volume_model_dirs.extend([
-                volume_base / "ComfyUI" / "models",
-                volume_base / "models",
-                volume_base / "comfyui_models",
-            ])
+            possible_volume_model_dirs.extend(
+                [
+                    volume_base / "ComfyUI" / "models",
+                    volume_base / "models",
+                    volume_base / "comfyui_models",
+                ]
+            )
 
             volume_models_dir = None
             for path in possible_volume_model_dirs:
@@ -114,27 +119,37 @@ class ComfyUIManager:
                     break
 
             if not volume_models_dir:
-                print(f"⚠️ No Volume Models found in: {[str(p) for p in possible_volume_model_dirs]}")
+                print(
+                    f"⚠️ No Volume Models found in: {[str(p) for p in possible_volume_model_dirs]}"
+                )
                 return False
 
             # ComfyUI Models Directory
-            comfy_models_dir = config.get_workspace_config()['comfyui_models_path']
+            comfy_models_dir = config.get_workspace_config()["comfyui_models_path"]
             comfy_models_parent = comfy_models_dir.parent
             comfy_models_parent.mkdir(parents=True, exist_ok=True)
 
             # Check for self-referential symlink
             try:
                 volume_resolved = volume_models_dir.resolve()
-                comfy_resolved = comfy_models_dir.resolve() if comfy_models_dir.exists() else comfy_models_dir
+                comfy_resolved = (
+                    comfy_models_dir.resolve()
+                    if comfy_models_dir.exists()
+                    else comfy_models_dir
+                )
 
                 if volume_resolved == comfy_resolved:
-                    print(f"✅ Volume models directory is already at the expected location: {comfy_models_dir}")
+                    print(
+                        f"✅ Volume models directory is already at the expected location: {comfy_models_dir}"
+                    )
                     print(f"⚠️ Skipping symlink creation (would be self-referential)")
                     return True
 
                 # Also check if both are under WORKSPACE_PATH
-                if volume_base == config.get_workspace_config()['workspace_path']:
-                    print(f"⚠️ No network volume detected (using {volume_base} as fallback)")
+                if volume_base == config.get_workspace_config()["workspace_path"]:
+                    print(
+                        f"⚠️ No network volume detected (using {volume_base} as fallback)"
+                    )
                     print(f"✅ Using local models directory: {comfy_models_dir}")
                     comfy_models_dir.mkdir(parents=True, exist_ok=True)
                     return True
@@ -151,7 +166,9 @@ class ComfyUIManager:
                         print("🔗 Symlink already exists and points to the volume.")
                         symlink_needed = False
                     else:
-                        print(f"🗑️ Removing existing symlink: {comfy_models_dir} → {current_target}")
+                        print(
+                            f"🗑️ Removing existing symlink: {comfy_models_dir} → {current_target}"
+                        )
                         comfy_models_dir.unlink()
                 except (FileNotFoundError, OSError):
                     print("🗑️ Removing broken symlink")
@@ -164,7 +181,9 @@ class ComfyUIManager:
             if symlink_needed:
                 print(f"🔗 Creating symlink: {comfy_models_dir} → {volume_models_dir}")
                 try:
-                    comfy_models_dir.symlink_to(volume_models_dir, target_is_directory=True)
+                    comfy_models_dir.symlink_to(
+                        volume_models_dir, target_is_directory=True
+                    )
                 except FileExistsError:
                     print(f"⚠️ Symlink already exists (race condition)")
                     if comfy_models_dir.is_symlink():
@@ -173,7 +192,9 @@ class ComfyUIManager:
                             if current_target == volume_models_dir.resolve():
                                 print("🔗 Symlink is correct")
                             else:
-                                print(f"❌ Symlink points to wrong target: {current_target}")
+                                print(
+                                    f"❌ Symlink points to wrong target: {current_target}"
+                                )
                                 return False
                         except (FileNotFoundError, OSError):
                             print("❌ Symlink is broken")
@@ -187,13 +208,24 @@ class ComfyUIManager:
                 print(f"✅ Symlink successfully created and verified!")
 
                 # Show available model types
-                model_subdirs = ["checkpoints", "vae", "loras", "unet", "clip", "clip_vision", "text_encoders", "diffusion_models"]
+                model_subdirs = [
+                    "checkpoints",
+                    "vae",
+                    "loras",
+                    "unet",
+                    "clip",
+                    "clip_vision",
+                    "text_encoders",
+                    "diffusion_models",
+                ]
                 found_types = []
 
                 for subdir in model_subdirs:
                     subdir_path = comfy_models_dir / subdir
                     if subdir_path.exists():
-                        model_files = list(subdir_path.glob("*.safetensors")) + list(subdir_path.glob("*.ckpt"))
+                        model_files = list(subdir_path.glob("*.safetensors")) + list(
+                            subdir_path.glob("*.ckpt")
+                        )
                         if model_files:
                             print(f"   📂 {subdir}: {len(model_files)} Models")
                             found_types.append(subdir)
@@ -228,11 +260,11 @@ class ComfyUIManager:
 
     def _check_process_health(self, i: int, max_retries: int) -> bool:
         """Check if ComfyUI process has exited unexpectedly
-        
+
         Args:
             i: Current attempt number (0-indexed)
             max_retries: Maximum number of retries
-            
+
         Returns:
             True if process is healthy or not running, False if process exited
         """
@@ -251,11 +283,13 @@ class ComfyUIManager:
         """Wait until ComfyUI is ready"""
         # Use configured timeout or default
         if max_retries is None:
-            timeout_seconds = config.get('comfy_startup_timeout', 600)
+            timeout_seconds = config.get("comfy_startup_timeout", 600)
             max_retries = timeout_seconds // delay
-        
+
         base_url = config.get_comfyui_base_url()
-        print(f"⏳ Waiting for ComfyUI to start (timeout: {max_retries * delay}s = {max_retries * delay / 60:.1f} min)...")
+        print(
+            f"⏳ Waiting for ComfyUI to start (timeout: {max_retries * delay}s = {max_retries * delay / 60:.1f} min)..."
+        )
 
         for i in range(max_retries):
             if not self._check_process_health(i, max_retries):
@@ -265,7 +299,9 @@ class ComfyUIManager:
                 response = requests.get(f"{base_url}/system_stats", timeout=5)
                 if response.status_code == 200:
                     elapsed = (i + 1) * delay
-                    print(f"✅ ComfyUI is running (started after ~{elapsed}s = {elapsed / 60:.1f} min)")
+                    print(
+                        f"✅ ComfyUI is running (started after ~{elapsed}s = {elapsed / 60:.1f} min)"
+                    )
                     return True
             except requests.exceptions.RequestException:
                 pass
@@ -273,12 +309,16 @@ class ComfyUIManager:
             if i < max_retries - 1:
                 if (i + 1) % 5 == 0:
                     elapsed = (i + 1) * delay
-                    print(f"⏳ Still waiting for ComfyUI... ({elapsed}s / {max_retries * delay}s)")
+                    print(
+                        f"⏳ Still waiting for ComfyUI... ({elapsed}s / {max_retries * delay}s)"
+                    )
                 if not self._check_process_health(i, max_retries):
                     return False
                 time.sleep(delay)
 
-        print(f"❌ ComfyUI failed to start after {max_retries * delay}s ({max_retries * delay / 60:.1f} min)!")
+        print(
+            f"❌ ComfyUI failed to start after {max_retries * delay}s ({max_retries * delay / 60:.1f} min)!"
+        )
         return False
 
     def _tail_comfyui_logs(self, lines: int = 50) -> None:
@@ -323,7 +363,9 @@ class ComfyUIManager:
             return self._direct_model_refresh()
 
         if discovery_response.status_code >= 500:
-            print(f"⚠️ Manager Discovery error code {discovery_response.status_code}, using fallback")
+            print(
+                f"⚠️ Manager Discovery error code {discovery_response.status_code}, using fallback"
+            )
             return self._direct_model_refresh()
 
         try:
@@ -364,7 +406,9 @@ class ComfyUIManager:
         if self._is_comfyui_running():
             print("✅ ComfyUI is already running, skipping startup")
             if self._comfyui_process and self._comfyui_process.poll() is None:
-                print(f"📋 Using existing ComfyUI process (PID: {self._comfyui_process.pid})")
+                print(
+                    f"📋 Using existing ComfyUI process (PID: {self._comfyui_process.pid})"
+                )
             return True
 
         # If we have a stale process reference, clear it
@@ -376,33 +420,40 @@ class ComfyUIManager:
         detected_version = self._detect_comfyui_version()
         print(f"🧭 Detected ComfyUI version: {detected_version}")
         self._log_gpu_info()
-        
+
         # Build ComfyUI command with base arguments
         comfy_cmd = [
-            sys.executable, str(self._comfyui_path / "main.py"),
-            "--listen", config.get('comfy_host', '127.0.0.1'),
-            "--port", str(config.get('comfy_port', 8188)),
+            sys.executable,
+            str(self._comfyui_path / "main.py"),
+            "--listen",
+            config.get("comfy_host", "127.0.0.1"),
+            "--port",
+            str(config.get("comfy_port", 8188)),
             "--normalvram",
-            "--preview-method", "auto",
+            "--preview-method",
+            "auto",
             "--verbose",
-            "--cache-lru", "3"
+            "--cache-lru",
+            "3",
         ]
-        
+
         # Add optional arguments based on config
-        if config.get('enable_torch_compile', False):
+        if config.get("enable_torch_compile", False):
             comfy_cmd.append("--enable-compile")
-        if config.get('disable_smart_memory', False):
+        if config.get("disable_smart_memory", False):
             comfy_cmd.append("--disable-smart-memory")
-        if config.get('force_fp16', False):
+        if config.get("force_fp16", False):
             comfy_cmd.append("--force-fp16")
-        
+
         # Add extra CLI args from COMFY_EXTRA_ARGS
-        extra_args = config.get('comfy_extra_args', '')
+        extra_args = config.get("comfy_extra_args", "")
         if isinstance(extra_args, str) and extra_args.strip():
             try:
                 comfy_cmd.extend(shlex.split(extra_args))
             except Exception as e:
-                print(f"⚠️ Could not parse COMFY_EXTRA_ARGS: '{extra_args}' - {type(e).__name__}: {e}")
+                print(
+                    f"⚠️ Could not parse COMFY_EXTRA_ARGS: '{extra_args}' - {type(e).__name__}: {e}"
+                )
                 traceback.print_exc()
         print(f"🎯 ComfyUI Start Command: {' '.join(comfy_cmd)}")
 
@@ -412,24 +463,40 @@ class ComfyUIManager:
         stderr_log = self._comfyui_logs_path / "comfyui_stderr.log"
 
         try:
-            with open(stdout_log, "a") as stdout_file, open(stderr_log, "a") as stderr_file:
+            with open(stdout_log, "a") as stdout_file, open(
+                stderr_log, "a"
+            ) as stderr_file:
 
                 # Prepare environment with performance flags
                 # These environment variables are consumed by sitecustomize.py, which calls
                 # scripts/optimize_performance.py to configure PyTorch backend settings.
                 # See optimize_performance.py for full documentation of these variables.
                 child_env = os.environ.copy()
-                child_env["ENABLE_TF32"] = "1" if config.get('enable_tf32', True) else "0"
-                child_env["ENABLE_CUDNN_BENCHMARK"] = "1" if config.get('enable_cudnn_benchmark', True) else "0"
-                child_env["MATMUL_PRECISION"] = str(config.get('matmul_precision', 'high'))
+                child_env["ENABLE_TF32"] = (
+                    "1" if config.get("enable_tf32", True) else "0"
+                )
+                child_env["ENABLE_CUDNN_BENCHMARK"] = (
+                    "1" if config.get("enable_cudnn_benchmark", True) else "0"
+                )
+                child_env["MATMUL_PRECISION"] = str(
+                    config.get("matmul_precision", "high")
+                )
 
-                if config.get('enable_torch_compile', False):
+                if config.get("enable_torch_compile", False):
                     child_env["ENABLE_TORCH_COMPILE"] = "1"
                     child_env["COMFY_ENABLE_COMPILE"] = "1"
-                    child_env["TORCH_COMPILE_MODE"] = str(config.get('torch_compile_mode', 'reduce-overhead'))
-                    child_env["TORCH_COMPILE_BACKEND"] = str(config.get('torch_compile_backend', 'inductor'))
-                    child_env["TORCH_COMPILE_FULLGRAPH"] = "1" if config.get('torch_compile_fullgraph', False) else "0"
-                    child_env["TORCH_COMPILE_DYNAMIC"] = "1" if config.get('torch_compile_dynamic', False) else "0"
+                    child_env["TORCH_COMPILE_MODE"] = str(
+                        config.get("torch_compile_mode", "reduce-overhead")
+                    )
+                    child_env["TORCH_COMPILE_BACKEND"] = str(
+                        config.get("torch_compile_backend", "inductor")
+                    )
+                    child_env["TORCH_COMPILE_FULLGRAPH"] = (
+                        "1" if config.get("torch_compile_fullgraph", False) else "0"
+                    )
+                    child_env["TORCH_COMPILE_DYNAMIC"] = (
+                        "1" if config.get("torch_compile_dynamic", False) else "0"
+                    )
 
                 self._comfyui_process = subprocess.Popen(
                     comfy_cmd,
@@ -451,7 +518,7 @@ class ComfyUIManager:
                     return False
 
                 # Optional warmup to speed up first request
-                if config.get_workflow_config().get('enable_startup_warmup', True):
+                if config.get_workflow_config().get("enable_startup_warmup", True):
                     try:
                         base_url = config.get_comfyui_base_url()
                         requests.get(f"{base_url}/object_info", timeout=5)
@@ -480,8 +547,12 @@ class ComfyUIManager:
             print(f"📤 Sending workflow to ComfyUI API...")
             print(f"🔗 URL: {base_url}/prompt")
             print(f"🆔 Client ID: {client_id}")
-            print(f"📋 Workflow Node Count: {workflow_processor.count_workflow_nodes(workflow)}")
-            print(f"🔍 Workflow Nodes: {workflow_processor.get_workflow_node_ids(workflow)}")
+            print(
+                f"📋 Workflow Node Count: {workflow_processor.count_workflow_nodes(workflow)}"
+            )
+            print(
+                f"🔍 Workflow Nodes: {workflow_processor.get_workflow_node_ids(workflow)}"
+            )
 
             # Test system stats
             print(f"🔄 Testing ComfyUI System Stats...")
@@ -499,8 +570,10 @@ class ComfyUIManager:
                     print("⚠️ No checkpoints found!")
 
             # Check output directory
-            output_dir = config.get_workspace_config()['comfyui_output_path']
-            print(f"📁 Output Dir: {output_dir}, exists: {output_dir.exists()}, writable: {os.access(output_dir, os.W_OK) if output_dir.exists() else False}")
+            output_dir = config.get_workspace_config()["comfyui_output_path"]
+            print(
+                f"📁 Output Dir: {output_dir}, exists: {output_dir.exists()}, writable: {os.access(output_dir, os.W_OK) if output_dir.exists() else False}"
+            )
 
             # Count SaveImage nodes
             save_nodes = workflow_processor.find_save_nodes(workflow)
@@ -511,7 +584,7 @@ class ComfyUIManager:
             response = requests.post(
                 f"{base_url}/prompt",
                 json={"prompt": workflow, "client_id": client_id},
-                timeout=30
+                timeout=30,
             )
 
             print(f"📤 Response Status: {response.status_code}")
@@ -532,16 +605,20 @@ class ComfyUIManager:
 
             # Wait for completion
             workflow_config = config.get_workflow_config()
-            max_wait = workflow_config['max_wait_time']
-            poll_interval = workflow_config['poll_interval']
-            print(f"⏳ Workflow execution timeout: {max_wait}s ({max_wait / 60:.0f} min)")
+            max_wait = workflow_config["max_wait_time"]
+            poll_interval = workflow_config["poll_interval"]
+            print(
+                f"⏳ Workflow execution timeout: {max_wait}s ({max_wait / 60:.0f} min)"
+            )
 
             start_time = time.monotonic()
             while True:
                 elapsed = time.monotonic() - start_time
 
                 try:
-                    history_response = requests.get(f"{base_url}/history/{prompt_id}", timeout=10)
+                    history_response = requests.get(
+                        f"{base_url}/history/{prompt_id}", timeout=10
+                    )
                     if history_response.status_code == 200:
                         history = history_response.json()
                         if prompt_id in history:
@@ -550,7 +627,9 @@ class ComfyUIManager:
 
                             if status.get("status_str") == "success":
                                 print(f"✅ Workflow completed successfully!")
-                                prompt_history["_workflow_start_time"] = workflow_start_time
+                                prompt_history["_workflow_start_time"] = (
+                                    workflow_start_time
+                                )
                                 return prompt_history
                             elif status.get("status_str") == "error":
                                 print(f"❌ Workflow Error: {status}")
@@ -560,7 +639,9 @@ class ComfyUIManager:
                     print(f"⚠️ History API Error: {e}")
 
                 if elapsed >= max_wait:
-                    print(f"⏰ Workflow Timeout after {int(elapsed)}s (max: {max_wait}s)")
+                    print(
+                        f"⏰ Workflow Timeout after {int(elapsed)}s (max: {max_wait}s)"
+                    )
                     return None
 
                 remaining = max_wait - elapsed
@@ -575,7 +656,9 @@ class ComfyUIManager:
             print(f"❌ Workflow Error: {e}")
             return None
 
-    def find_generated_images(self, result: Dict[str, Any], workflow_start_time: float) -> List[Path]:
+    def find_generated_images(
+        self, result: Dict[str, Any], workflow_start_time: float
+    ) -> List[Path]:
         """Find generated images from workflow result"""
 
         image_paths = []
@@ -590,9 +673,16 @@ class ComfyUIManager:
                     subfolder = img_info.get("subfolder", "")
                     if filename:
                         if subfolder:
-                            full_path = config.get_workspace_config()['comfyui_output_path'] / subfolder / filename
+                            full_path = (
+                                config.get_workspace_config()["comfyui_output_path"]
+                                / subfolder
+                                / filename
+                            )
                         else:
-                            full_path = config.get_workspace_config()['comfyui_output_path'] / filename
+                            full_path = (
+                                config.get_workspace_config()["comfyui_output_path"]
+                                / filename
+                            )
 
                         expected_files.append(full_path)
                         if full_path.exists():
@@ -601,27 +691,35 @@ class ComfyUIManager:
 
         # Fallback: Search output directory recursively for new images
         if not image_paths:
-            print("🔍 Fallback: Recursively searching output directory for images created after workflow start...")
-            output_dir = config.get_workspace_config()['comfyui_output_path']
+            print(
+                "🔍 Fallback: Recursively searching output directory for images created after workflow start..."
+            )
+            output_dir = config.get_workspace_config()["comfyui_output_path"]
             if output_dir.exists():
                 supported_extensions = config.get_supported_extensions()
                 cutoff_time = workflow_start_time
 
-                for ext in supported_extensions['image']:
+                for ext in supported_extensions["image"]:
                     for img_path in output_dir.rglob(ext):
                         if img_path.stat().st_mtime > cutoff_time:
                             image_paths.append(img_path)
                             rel_path = img_path.relative_to(output_dir)
-                            print(f"🖼️ New image found: {rel_path} (mtime: {img_path.stat().st_mtime}, cutoff: {cutoff_time})")
+                            print(
+                                f"🖼️ New image found: {rel_path} (mtime: {img_path.stat().st_mtime}, cutoff: {cutoff_time})"
+                            )
 
                 if not image_paths:
-                    print(f"⚠️ No images found created after {cutoff_time} (workflow start time)")
+                    print(
+                        f"⚠️ No images found created after {cutoff_time} (workflow start time)"
+                    )
 
                     # List recent files for debugging
                     recent_files = []
-                    for ext in supported_extensions['image']:
+                    for ext in supported_extensions["image"]:
                         recent_files.extend(output_dir.rglob(ext))
-                    recent_files = sorted(recent_files, key=lambda p: p.stat().st_mtime, reverse=True)[:5]
+                    recent_files = sorted(
+                        recent_files, key=lambda p: p.stat().st_mtime, reverse=True
+                    )[:5]
                     if recent_files:
                         print(f"📋 Most recent images in output directory:")
                         for f in recent_files:
@@ -634,12 +732,15 @@ class ComfyUIManager:
         """Log basic GPU information for diagnostics in serverless context"""
         try:
             import torch
+
             available = torch.cuda.is_available()
             print(f"🧩 CUDA available: {available}")
             if available:
                 device = torch.device("cuda")
                 name = torch.cuda.get_device_name(device)
-                total = torch.cuda.get_device_properties(device).total_memory // (1024 * 1024)
+                total = torch.cuda.get_device_properties(device).total_memory // (
+                    1024 * 1024
+                )
                 capability = torch.cuda.get_device_capability(device)
                 print(f"🎛️  GPU: {name} | VRAM: {total} MB | CC: {capability}")
         except Exception as e:
@@ -648,7 +749,7 @@ class ComfyUIManager:
 
     def cleanup_temp_files(self, file_paths: List[Path]) -> int:
         """Clean up temporary ComfyUI output files"""
-        if not config.get('cleanup_temp_files', True):
+        if not config.get("cleanup_temp_files", True):
             print("📋 Cleanup disabled via CLEANUP_TEMP_FILES=false")
             return 0
 
@@ -669,16 +770,20 @@ class ComfyUIManager:
     def start_server_if_needed(self) -> bool:
         """Start ComfyUI server if needed and setup models"""
         # Volume Models Setup
-        comfy_models_dir = config.get_workspace_config()['comfyui_models_path']
+        comfy_models_dir = config.get_workspace_config()["comfyui_models_path"]
         just_setup_models = False
 
         if not comfy_models_dir.is_symlink() or not comfy_models_dir.exists():
             print("📦 Setting up Volume Models...")
             volume_setup_success = self._setup_volume_models()
             if not volume_setup_success:
-                print("⚠️ Volume Models Setup failed - ComfyUI will start without Volume Models")
+                print(
+                    "⚠️ Volume Models Setup failed - ComfyUI will start without Volume Models"
+                )
             else:
-                print("✅ Volume Models Setup successful - ComfyUI will find models at startup!")
+                print(
+                    "✅ Volume Models Setup successful - ComfyUI will find models at startup!"
+                )
                 time.sleep(2)
                 print("🔗 Symlinks stabilized - ComfyUI can now start")
                 just_setup_models = True
@@ -688,7 +793,7 @@ class ComfyUIManager:
             return False
 
         # Model refresh only needed after initial setup
-        if just_setup_models and config.get('comfy_refresh_models', True):
+        if just_setup_models and config.get("comfy_refresh_models", True):
             print("⏳ Waiting for ComfyUI model scanning to initialize...")
             time.sleep(5)
             self._force_model_refresh()
